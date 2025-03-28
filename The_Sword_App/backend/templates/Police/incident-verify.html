@@ -1,0 +1,153 @@
+{% extends "police_base.html" %}
+
+{% block title %}
+Home - Citizen Safety App
+{% endblock %}
+
+{% block content %}
+      
+        <div class="container mx-auto px-4 mt-16">
+            <h2 class="text-2xl font-bold mb-6 dark:text-white">Incident Verify</h2>
+            
+              <!-- Fallback Message -->
+        {% if incidents|length == 0 %}
+        <div class="text-center text-gray-600 dark:text-gray-400 py-10">
+            <i class="fas fa-info-circle text-4xl mb-4"></i>
+            <p class="text-xl font-medium">No details available to verify the incidents.</p>
+        </div>
+        {% else %}
+
+            <!-- Incident Container -->
+            {% for incident in incidents %}
+            <div class="border-l-4 rounded-lg shadow-md p-4 mb-6 
+                {% if incident.priority_type == 'high' %} border-red-500 bg-red-100 dark:bg-red-900 
+                {% elif incident.priority_type == 'medium' %} border-yellow-500 bg-yellow-100 dark:bg-yellow-900 
+                {% else %} border-green-500 bg-green-100 dark:bg-green-900 {% endif %}">
+    
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold {% if incident.priority_type == 'high' %} text-red-700 {% elif incident.priority_type == 'medium' %} text-yellow-700 {% else %} text-green-700 {% endif %} dark:text-white">
+                        {{ incident.incident_type }}
+                    </h3>
+                    <span class="px-2 py-1 rounded-full text-sm font-medium
+                        {% if incident.priority_type == 'high' %} bg-red-200 text-red-800 
+                        {% elif incident.priority_type == 'medium' %} bg-yellow-200 text-yellow-800 
+                        {% else %} bg-green-200 text-green-800 {% endif %}">{{ incident.priority_type | capitalize }}</span>
+                </div>
+                <p class="mt-2 dark:text-gray-400">Location: {{ incident.location }}</p>
+                <p class="dark:text-gray-400">Date/Time: {{ incident.date_time }}</p>
+                <p class="dark:text-gray-400">Reporting Citizen: {{ incident.reporting_citizen }}</p>
+                <p class="dark:text-gray-400">Notice: {{ incident.notice }}</p>
+    
+                <!-- Action Buttons -->
+                <div class="mt-4 flex justify-between">
+                <div class="mt-4 flex space-x-2">
+                    <button onclick="handleIncident('{{ incident.alert_id }}', 'accept')" 
+                        class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Accept</button>
+                    <button onclick="handleIncident('{{ incident.alert_id }}', 'reject')" 
+                        class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Reject</button>
+                </div>
+               
+                <!-- Expand Button -->
+                <button onclick="toggleDetails('{{ incident._id }}')" 
+                    class="text-gray-500 hover:text-gray-800 dark:hover:text-gray-300">More Details ↓</button>
+                </div>
+
+                <!-- Expandable Details -->
+            <div id="details-{{ incident._id }}" class="hidden mt-4">
+                <p class="dark:text-gray-400">Description: {{ incident.description }}</p>
+                <div class="mt-2">
+                    <h4 class="text-sm font-medium dark:text-gray-300">Evidence Files:</h4>
+                    <div class="grid grid-cols-2 gap-4 mt-2">
+                        {% for file in incident.evidence_files %}
+                            {% if file.endswith('.jpg') or file.endswith('.jpeg') or file.endswith('.png') or file.endswith('.gif') %}
+                            <!-- Display Image -->
+                            <img src="{{ file }}" alt="Evidence" class="rounded-lg shadow-md">
+                            {% elif file.endswith('.mp4') or file.endswith('.webm') or file.endswith('.ogg') %}
+                            <!-- Display Video -->
+                            <video controls class="rounded-lg shadow-md">
+                                <source src="{{ file }}" type="video/{{ file.split('.')[-1] }}">
+                                Your browser does not support the video tag.
+                            </video>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    
+                </div>
+            </div>
+
+                </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+    </main>
+
+    <!-- Success/Error Modal -->
+<div id="statusModal" class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-1/3 text-center">
+        <!-- Icon -->
+        <i id="statusIcon" class="fas fa-check-circle text-green-500 text-4xl mb-4"></i>
+        <!-- Message -->
+        <h3 id="statusMessage" class="text-xl font-bold dark:text-white"></h3>
+        <!-- Close Button -->
+        <button onclick="closeModal()" class="mt-4 bg-primary text-white px-4 py-2 rounded hover:bg-primary-dark">
+            OK
+        </button>
+    </div>
+</div>
+
+
+    <script>
+        // Toggle Details Visibility
+        function toggleDetails(id) {
+            const details = document.getElementById(`details-${id}`);
+            details.classList.toggle('hidden');
+        }
+
+      async function handleIncident(alertId, action) {
+        try {
+            const response = await fetch('/police/incident-verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ alert_id: alertId, action })
+            });
+            const result = await response.json();
+             // Display the modal based on the response
+        if (response.ok) {
+            showModal("success", result.message); // Show success modal
+        } else {
+            showModal("error", result.error || "An error occurred."); // Show error modal
+        }
+    } catch (error) {
+        console.error('Error updating status:', error);
+        showModal("error", "Failed to update incident status."); // Show error modal on failure
+    }
+}
+    // Show the modal with animation
+function showModal(type, message) {
+    const modal = document.getElementById('statusModal');
+    const icon = document.getElementById('statusIcon');
+    const statusMessage = document.getElementById('statusMessage');
+
+    // Set the icon and color based on the type of message (success or error)
+    if (type === "success") {
+        icon.className = "fas fa-check-circle text-green-500 text-4xl mb-4"; // Success icon
+    } else if (type === "error") {
+        icon.className = "fas fa-times-circle text-red-500 text-4xl mb-4"; // Error icon
+    }
+
+    // Set the message text
+    statusMessage.textContent = message;
+
+    // Show the modal
+    modal.classList.remove('hidden');
+}
+
+// Close the modal
+function closeModal() {
+    const modal = document.getElementById('statusModal');
+    modal.classList.add('hidden'); // Hide the modal
+    location.reload(); // Reload the page to reflect changes
+}
+
+    </script>
+{% endblock %}

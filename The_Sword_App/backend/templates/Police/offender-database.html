@@ -1,0 +1,85 @@
+{% extends "police_base.html" %}
+
+{% block title %}
+Home - Citizen Safety App
+{% endblock %}
+
+{% block content %}
+      
+        <div class="container mx-auto px-4 mt-20">
+            <h2 class="text-2xl font-bold mb-4 dark:text-white">Offender Database</h2>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+                <div class="mb-4">
+                    <label for="searchType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search by:</label>
+                    <select id="searchType" class="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                        <option value="name">Name</option>
+                        <option value="id">ID Number</option>
+                        <option value="crime">Crime Type</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label for="searchQuery" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search Query:</label>
+                    <input type="text" id="searchQuery" class="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                </div>
+                <button class="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-dark transition-colors duration-200">Search</button>
+            </div>
+            <div class="mt-8">
+                <h3 class="text-xl font-semibold mb-4 dark:text-white">Search Results</h3>
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-900">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Age</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Crime</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">001</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">John Doe</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">35</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">Theft</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                        Wanted
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">002</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">Jane Smith</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">28</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">Fraud</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        In Custody
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Notifications Bar -->
+    <div class="fixed bottom-0 left-0 right-0 bg-gray-200 dark:bg-gray-700 p-2 transition-colors duration-200">
+        <div class="container mx-auto">
+            <div class="overflow-hidden h-6">
+                <div class="animate-marquee whitespace-nowrap">
+                    <span class="text-gray-800 dark:text-gray-200 mx-4">SOS: Robbery in progress at 123 Main St</span>
+                    <span class="text-gray-800 dark:text-gray-200 mx-4">Incident: Traffic accident reported on Highway 101</span>
+                    <span class="text-gray-800 dark:text-gray-200 mx-4">Alert: Suspicious activity detected in CCTV feed #7</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+   
+    
+{% endblock %}
+

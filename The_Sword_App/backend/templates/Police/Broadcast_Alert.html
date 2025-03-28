@@ -1,0 +1,139 @@
+{% extends "police_base.html" %}
+
+{% block title %}
+Home - Citizen Safety App
+{% endblock %}
+
+{% block content %}
+            <h2 class="text-2xl font-bold mb-4 dark:text-white">Broadcast Alerts</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Alert Creation Form -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                    <h3 class="text-xl font-semibold mb-4 dark:text-white">Create New Alert</h3>
+                    <form id="alertForm" action="/submit_alert" method="POST" >
+                        <div class="mb-4">
+                            <label for="alertType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Alert Type</label>
+                            <select id="alertType" name="alertType" class="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white dark:border-gray-600" required>
+                                <option value="">Select Alert Type</option>
+                                <option value="emergency">Emergency</option>
+                                <option value="warning">Warning</option>
+                                <option value="information">Information</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label for="alertTitle" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Alert Title</label>
+                            <input type="text" id="alertTitle" name="alertTitle" class="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white dark:border-gray-600" required>
+                        </div>
+                        <div class="mb-4">
+                            <label for="alertMessage" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Alert Message</label>
+                            <textarea id="alertMessage" name="alertMessage" rows="4" class="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white dark:border-gray-600" required></textarea>
+                        </div>
+                        <div class="mb-4">
+                            <label for="location" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Alert Location</label>
+                            <input type="text" id="location" name="location" class="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white dark:border-gray-600" required>
+                        </div>
+                        <div>
+                            <label for="dateTime" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date and Time</label>
+                            <input type="datetime-local" id="dateTime" name="dateTime" class="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                        </div>
+                        <div class="mb-4">
+                            <label for="alertDuration" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Alert Duration (hours)</label>
+                            <input type="number" id="alertDuration" name="alertDuration" min="1" max="72" class="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white dark:border-gray-600" required>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Target Audience</label>
+                            <div class="space-y-2">
+                                <label class="inline-flex items-center">
+                                    <input type="checkbox" name="targetAudience" value="residents" class="form-checkbox">
+                                    <span class="ml-2 text-gray-700 dark:text-gray-300">Residents</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    <input type="checkbox" name="targetAudience" value="businesses" class="form-checkbox">
+                                    <span class="ml-2 text-gray-700 dark:text-gray-300">Businesses</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    <input type="checkbox" name="targetAudience" value="visitors" class="form-checkbox">
+                                    <span class="ml-2 text-gray-700 dark:text-gray-300">Visitors</span>
+                                </label>
+                            </div>
+                        </div>
+                        <button type="submit" class="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-dark transition-colors duration-200">Broadcast Alert</button>
+                    </form>
+                </div>
+                
+                <!-- Recent Alerts -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                    <h3 class="text-xl font-semibold mb-4 dark:text-white">Recent Alerts</h3>
+                    <div class="space-y-4 bg-gray-100 dark:bg-gray-700 p-4 rounded-lg mb-4 " id="alertList">
+                        <!-- Alert items will be dynamically added here -->
+                    
+                         
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Notifications Bar -->
+    <div class="fixed bottom-0 left-0 right-0 bg-gray-200 dark:bg-gray-700 p-2 transition-colors duration-200">
+        <div class="container mx-auto">
+            <div class="overflow-hidden h-6">
+                <div class="animate-marquee whitespace-nowrap">
+                    <span class="text-gray-800 dark:text-gray-200 mx-4">SOS: Robbery in progress at 123 Main St</span>
+                    <span class="text-gray-800 dark:text-gray-200 mx-4">Incident: Traffic accident reported on Highway 101</span>
+                    <span class="text-gray-800 dark:text-gray-200 mx-4">Alert: Suspicious activity detected in CCTV feed #7</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+           
+            const alertForm = document.getElementById('alertForm');
+            const recentAlerts = document.getElementById('recentAlerts');
+            
+        });
+
+
+
+
+
+
+
+
+        const socket = io();
+
+        // Listen for new alerts
+        socket.on('new_alert', (alert) => {
+            console.log('New alert received:', alert);
+            addAlertToPage(alert);
+        });
+
+        // Function to add an alert to the page
+        function addAlertToPage(alert) {
+            const alertList = document.getElementById('alertList');
+            const alertCard = document.createElement('div');
+            alertCard.className = 'alert-card';
+
+            alertCard.innerHTML = `
+            
+                            <h4 class="font-semibold text-gray-800 dark:text-white">${alertData.alertTitle}</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-300">${alertData.alertMessage}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                                <span class="font-medium">Type:</span> ${alertData.alertType} |
+                                <span class="font-medium">Location:</span> ${alertData.location} |
+                                <span class="font-medium">Duration:</span> ${alertData.alertDuration} hours
+                            </p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">
+                                <span class="font-medium">Target Audience:</span> ${alertData.targetAudience.join(', ')}
+                            </p>
+            `;
+
+            alertList.prepend(alertCard); // Add the new alert at the top
+        }
+
+        
+    </script>
+{% endblock %}
+

@@ -1,0 +1,211 @@
+{% extends "police_base.html" %}
+
+{% block title %}
+Home - Citizen Safety App
+{% endblock %}
+
+{% block content %}
+  
+        <div class="container mx-auto px-4 mt-20">
+            <h2 class="text-2xl font-bold mb-4 dark:text-white">Real-Time CCTV Feeds</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- CCTV Feed 1 -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+                    <div class="relative">
+                        <img src="/video_feed"  alt="CCTV Feed 1" class="w-full h-48 object-cover rounded-lg cursor-pointer feed-image" data-feed="1">
+                        <span class="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs">Normal</span>
+                    </div>
+                     <h3 class="text-lg font-semibold mt-2 dark:text-white">Camera #1 - Main Street</h3>
+                    <p class="text-gray-600 dark:text-gray-300 text-sm">Real-time status updates below:</p>
+                    <div id="notifications" style="color: red; font-weight: bold; margin-top: 20px;"></div>
+
+                </div>
+
+                <!-- CCTV Feed 2 -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+                    <div class="relative">
+                        <img src="https://placehold.co/400x300" alt="CCTV Feed 2" class="w-full h-48 object-cover rounded-lg cursor-pointer feed-image" data-feed="2">
+                        <span class="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs">Anomaly Detected</span>
+                    </div>
+                    <h3 class="text-lg font-semibold mt-2 dark:text-white">Camera #2 - Central Park</h3>
+                    <p class="text-gray-600 dark:text-gray-300 text-sm">Last updated: 1 minute ago</p>
+                </div>
+
+                <!-- CCTV Feed 3 -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+                    <div class="relative">
+                        <img src="https://placehold.co/400x300" alt="CCTV Feed 3" class="w-full h-48 object-cover rounded-lg cursor-pointer feed-image" data-feed="3">
+                        <span class="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs">Normal</span>
+                    </div>
+                    <h3 class="text-lg font-semibold mt-2 dark:text-white">Camera #3 - Downtown</h3>
+                    <p class="text-gray-600 dark:text-gray-300 text-sm">Last updated: 3 minutes ago</p>
+                </div>
+
+                <!-- CCTV Feed 4 -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+                    <div class="relative">
+                        <img src="https://placehold.co/400x300" alt="CCTV Feed 4" class="w-full h-48 object-cover rounded-lg cursor-pointer feed-image" data-feed="4">
+                        <span class="absolute top-2 left-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs">Warning</span>
+                    </div>
+                    <h3 class="text-lg font-semibold mt-2 dark:text-white">Camera #4 - Shopping District</h3>
+                    <p class="text-gray-600 dark:text-gray-300 text-sm">Last updated: 30 seconds ago</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Feed Overlay -->
+    <div id="feedOverlay" class="feed-overlay">
+        <img id="enlargedFeed" src="/placeholder.svg" alt="Enlarged CCTV Feed">
+    </div>
+
+    <!-- Bottom Notifications Bar -->
+    <div class="fixed bottom-0 left-0 right-0 bg-gray-200 dark:bg-gray-700 p-2 transition-colors duration-200">
+        <div class="container mx-auto">
+            <div class="overflow-hidden h-6">
+                <div class="animate-marquee whitespace-nowrap">
+                    <span class="text-gray-800 dark:text-gray-200 mx-4">SOS: Robbery in progress at 123 Main St</span>
+                    <span class="text-gray-800 dark:text-gray-200 mx-4">Incident: Traffic accident reported on Highway 101</span>
+                    <span class="text-gray-800 dark:text-gray-200 mx-4">Alert: Suspicious activity detected in CCTV feed #7</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+         
+            const feedOverlay = document.getElementById('feedOverlay');
+            const enlargedFeed = document.getElementById('enlargedFeed');
+            const feedImages = document.querySelectorAll('.feed-image');
+            
+
+            // CCTV feed enlargement
+            feedImages.forEach(img => {
+                img.addEventListener('click', function() {
+                    enlargedFeed.src = this.src;
+                    feedOverlay.classList.add('active');
+                });
+            });
+
+            feedOverlay.addEventListener('click', function() {
+                this.classList.remove('active');
+            });
+        });
+    </script>
+
+    <!-- <script>
+
+
+        const socket = io();
+
+        // Listen for violence status updates
+        socket.on('violence_status', (data) => {
+            const statusBadge = document.getElementById('status-badge');
+            const statusText = document.getElementById('status-text');
+
+            if (data.status === "Alert: Violence Detected!") {
+                statusBadge.classList.remove('bg-green-500');
+                statusBadge.classList.add('bg-red-500');
+                statusBadge.innerText = 'Alert';
+                statusText.innerText = data.status;
+            } else {
+                statusBadge.classList.remove('bg-red-500');
+                statusBadge.classList.add('bg-green-500');
+                statusBadge.innerText = 'Normal';
+                statusText.innerText = data.status;
+            }
+        });
+ 
+        </script>
+
+<script>
+   
+
+    // Listen for alerts from the backend
+    socket.on('alert', (data) => {
+        const alertDiv = document.getElementById('alert');
+        alertDiv.textContent = data.message;
+
+        // Clear alert after 5 seconds
+        setTimeout(() => {
+            alertDiv.textContent = '';
+        }, 5000);
+    });
+</script>
+
+<script>
+async function sendFrame(imageBlob) {
+    const response = await fetch("https://violence-detect.loca.lt/detect", {
+        method: "POST",
+        body: imageBlob,
+        headers: {
+            "Content-Type": "multipart/form-data",
+        },
+    });
+    const data = await response.json();
+    console.log(data); // Display detected objects
+    return data;
+}
+</script> -->
+
+<script>
+    const notificationDiv = document.getElementById('notifications');
+
+    // Function to request notification permission
+    function requestNotificationPermission() {
+        if (Notification.permission !== 'granted') {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    console.log('Notification permission granted.');
+                }
+            });
+        }
+    }
+
+    // Function to show a system notification
+    function showSystemNotification(message) {
+        if (Notification.permission === 'granted') {
+            new Notification('Detection Alert', {
+                body: message,
+                icon: '/static/alert-icon.png' // Optional: Add an icon for the notification
+            });
+        } else {
+            console.log('Notification permission not granted.');
+        }
+    }
+
+    // Fetch detections and show notifications
+    function fetchDetections() {
+        fetch('/detections')
+            .then(response => response.json())
+            .then(data => {
+                if (data.detected_objects.length > 0) {
+    const timestamp = new Date().toLocaleTimeString();
+    data.detected_objects.forEach(obj => {
+        // Check if the object contains 'knife' (case-insensitive)
+        if (/knife/i.test(obj)) {
+            return; // Skip this object if it's a knife
+        }
+
+        const notification = document.createElement('div');
+        notification.textContent = `Detected: ${obj} at ${timestamp}`;
+        notificationDiv.appendChild(notification);
+
+        // Show system notification
+        showSystemNotification(`Detected: ${obj} at ${timestamp}`);
+    });
+}
+
+            });
+    }
+
+    // Request notification permission when the page loads
+    requestNotificationPermission();
+
+    // Check for detections every second
+    setInterval(fetchDetections, 1000);
+</script>
+
+
+{% endblock %}

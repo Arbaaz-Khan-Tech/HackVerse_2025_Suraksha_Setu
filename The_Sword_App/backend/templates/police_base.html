@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Suraksha Setu{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1e40af',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .sidebar {
+            transition: width 0.3s ease;
+        }
+        .sidebar.collapsed {
+            width: 64px;
+        }
+        .sidebar.expanded {
+            width: 250px;
+        }
+        .menu-text {
+            transition: opacity 0.3s ease;
+        }
+        .sidebar.collapsed .menu-text {
+            opacity: 0;
+            display: none;
+        }
+        .feed-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .feed-overlay.active {
+            display: flex;
+        }
+        .feed-overlay img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+        .incident {
+    background-color: #f0f4f8;
+    border-radius: 5px;
+    padding: 10px;
+}
+.incident:hover {
+    background-color: #1e40af;
+    color: white;
+}
+
+        /* Custom styles for tour */
+        .shepherd-button {
+            @apply px-4 py-2 rounded-lg transition-colors duration-200;
+        }
+        
+        .shepherd-button-primary {
+            @apply bg-primary text-white hover:bg-blue-700;
+        }
+        
+        .shepherd-button-secondary {
+            @apply bg-gray-500 text-white hover:bg-gray-600;
+        }
+        
+        /* Language selector styling */
+        .language-btn {
+            @apply px-6 py-3 text-lg font-semibold rounded-xl transform transition-all duration-200 hover:scale-105;
+        }
+    </style>
+      {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 transition-colors duration-200">
+    <!-- Top Navigation -->
+    <nav class="bg-white dark:bg-gray-800 shadow-md fixed w-full top-0 z-50 transition-colors duration-200">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <button id="sidebarToggle" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full mr-2 transition-colors duration-200">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 class="text-xl font-bold dark:text-white">Police Dashboard</h1>
+                </div>
+                <div class="flex-1 max-w-2xl mx-4">
+                    <input type="text" placeholder="Search..." 
+                           class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-primary dark:bg-gray-700 dark:text-white dark:border-gray-600 transition-colors duration-200">
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="darkModeToggle" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors duration-200">
+                        <i class="fas fa-moon dark:text-white"></i>
+                    </button>
+                    <button class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors duration-200">
+                        <i class="fas fa-user-circle dark:text-white"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <div id="sidebar" class="sidebar expanded fixed left-0 top-16 h-screen bg-white dark:bg-gray-800 shadow-lg z-40 transition-colors duration-200">
+        <div class="py-4">
+
+        <!-- Dropdown Menu for Incident -->
+<div class="relative">
+    <button id="incidentDropdown" class="flex items-center px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary transition-colors duration-200 w-full text-left">
+        <i class="fas fa-bell w-6"></i>
+        <span class="menu-text ml-2">Incident</span>
+        <i class="fas fa-chevron-down ml-auto"></i>
+    </button>
+    <div id="incidentMenu" class="absolute left-0 w-full bg-white dark:bg-gray-800 shadow-lg hidden">
+        <a href="/police/incident-alerts" class="flex items-center px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary transition-colors duration-200">
+            <i class="fas fa-bell w-6"></i>
+            <span class="menu-text ml-2">Incident Alerts</span>
+        </a>
+        <a href="/police/incident-report" class="flex items-center px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary transition-colors duration-200">
+            <i class="fas fa-file-alt w-6"></i>
+            <span class="menu-text ml-2">Incident Report</span>
+        </a>
+        <a href="/Police/Broadcast_Alert" class="flex items-center px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary transition-colors duration-200">
+            <i class="fa-solid fa-tower-broadcast w-6"></i>
+            <span class="menu-text ml-2">Broadcast Alerts</span>
+        </a>
+        <a href="/police/incident-verify" class="flex items-center px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary transition-colors duration-200">
+            <i class="fa fa-check w-6" aria-hidden="true"></i> <i class="fas fa-file-alt w-6"></i>
+            <span class="menu-text ml-2">Verify Reports</span>
+        </a>
+    </div>
+</div>
+            <a href="/police/cctv-feeds" class="flex items-center px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary transition-colors duration-200">
+                <i class="fas fa-video w-6"></i>
+                <span class="menu-text ml-2 font-medium">Real-Time CCTV Feeds</span>
+            </a>
+             
+            <a href="/police/crime-heatmap" class="flex items-center px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary transition-colors duration-200">
+                <i class="fas fa-map-marked-alt w-6"></i>
+                <span class="menu-text ml-2">Crime Heatmap</span>
+            </a>
+            <a href="/police/police-analytics" class="flex items-center px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary transition-colors duration-200 ">
+                <i class="fas fa-video w-6"></i>
+                <span class="menu-text ml-2 font-medium">Analytics</span>
+            </a>
+            <a href="/police/sos-notifications" class="flex items-center px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary transition-colors duration-200">
+                <i class="fas fa-exclamation-circle w-6"></i>
+                <span class="menu-text ml-2">SOS Notifications</span>
+            </a>
+            
+           
+            <a href="/police/police-analytics" class="flex items-center px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary transition-colors duration-200 ">
+                <i class="fas fa-video w-6"></i>
+                <span class="menu-text ml-2 font-medium">Analytics</span>
+            </a>
+            <!-- Dropdown Menu for Database -->
+<div class="relative">
+    <button id="databaseDropdown" class="flex items-center px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary transition-colors duration-200 w-full text-left">
+        <i class="fas fa-database w-6"></i>
+        <span class="menu-text ml-2">Database</span>
+        <i class="fas fa-chevron-down ml-auto"></i>
+    </button>
+    <div id="databaseMenu" class="absolute left-0 w-full bg-white dark:bg-gray-800 shadow-lg hidden">
+        <a href="/police/offender-database" class="flex items-center px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary transition-colors duration-200">
+            <i class="fas fa-database w-6"></i>
+            <span class="menu-text ml-2">Offender Database</span>
+        </a>
+        <a href="/Police/Missing_Person_Database" class="flex items-center px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary transition-colors duration-200">
+            <i class="fa fa-male w-6"></i>
+            <span class="menu-text ml-2">Missing Person Database</span>
+        </a>
+    </div>
+</div>
+
+        </div>
+    </div>
+    
+
+
+    <!-- Main Content -->
+    <main class="transition-all duration-300" id="mainContent">
+        <div class="container mx-auto px-4 mt-20">
+            {% block content %}
+            <!-- Placeholder for page-specific content -->
+            {% endblock %}
+            </div>
+            </main>
+
+    <!-- Updated Language Selector with better design -->
+    <div id="languageSelector" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all duration-300 scale-95 hover:scale-100">
+            <div class="text-center">
+                <i class="fas fa-shield-alt text-primary text-4xl mb-4"></i>
+                <h2 class="text-3xl font-bold mb-2 text-gray-800 dark:text-white">
+                    Welcome to Police Dashboard
+                </h2>
+                <h3 class="text-2xl font-semibold mb-6 text-primary">
+                    पुलिस डैशबोर्ड में आपका स्वागत है
+                </h3>
+                <p class="text-gray-600 dark:text-gray-300 mb-8">
+                    Please select your preferred language<br>
+                    कृपया अपनी पसंदीदा भाषा चुनें
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="startTour('en')" class="flex items-center justify-center space-x-2 px-6 py-4 bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-xl hover:from-blue-600 hover:to-blue-800 transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                    <i class="fas fa-globe text-xl"></i>
+                    <span class="text-lg font-semibold">English</span>
+                </button>
+                <button onclick="startTour('hi')" class="flex items-center justify-center space-x-2 px-6 py-4 bg-gradient-to-r from-orange-500 to-orange-700 text-white rounded-xl hover:from-orange-600 hover:to-orange-800 transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-opacity-50">
+                    <i class="fas fa-globe text-xl"></i>
+                    <span class="text-lg font-semibold">हिंदी</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            const feedOverlay = document.getElementById('feedOverlay');
+            const enlargedFeed = document.getElementById('enlargedFeed');
+            const feedImages = document.querySelectorAll('.feed-image');
+            const incidentDropdown = document.getElementById('incidentDropdown');
+    const incidentMenu = document.getElementById('incidentMenu');
+    const databaseDropdown = document.getElementById('databaseDropdown');
+const databaseMenu = document.getElementById('databaseMenu');
+
+                    
+                    function updateMainContentMargin() {
+                        if (sidebar.classList.contains('collapsed')) {
+                            mainContent.style.marginLeft = '64px';
+                        } else {
+                            mainContent.style.marginLeft = '250px';
+                        }
+                    }
+        
+                    // Initial margin
+                    updateMainContentMargin();
+        
+                    sidebarToggle.addEventListener('click', function() {
+                        sidebar.classList.toggle('collapsed');
+                        sidebar.classList.toggle('expanded');
+                        updateMainContentMargin();
+                    });
+        
+                    // Dark mode toggle
+                    darkModeToggle.addEventListener('click', function() {
+                        document.documentElement.classList.toggle('dark');
+                        const isDarkMode = document.documentElement.classList.contains('dark');
+                        localStorage.setItem('darkMode', isDarkMode);
+                        darkModeToggle.innerHTML = isDarkMode ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+                    });
+        
+                    // Check for saved dark mode preference
+                    if (localStorage.getItem('darkMode') === 'true') {
+                        document.documentElement.classList.add('dark');
+                        darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+                    }
+
+                    // Toggle settings dropdown visibility
+
+                    
+    incidentDropdown.addEventListener('click', function() {
+        incidentMenu.classList.toggle('hidden');
+    });
+
+    databaseDropdown.addEventListener('click', function() {
+    databaseMenu.classList.toggle('hidden');
+});
+
+                });
+        
+    
+        
+           
+         
+        </script>
+        
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // ... existing DOMContentLoaded code ...
+
+                function setupTour(language) {
+                    const tourContent = {
+                        en: {
+                            welcome: {
+                                title: 'Welcome to Police Dashboard',
+                                text: 'Let us guide you through all the features of your dashboard.'
+                            },
+                            incident: {
+                                title: 'Incident Management',
+                                text: 'Click here to access incident-related features. This includes Incident Alerts, Reports, Broadcasting, and Report Verification.'
+                            },
+                            incidentAlerts: {
+                                title: 'Incident Alerts',
+                                text: 'View and manage all incident alerts from citizens.'
+                            },
+                            incidentReport: {
+                                title: 'Incident Reports',
+                                text: 'Access detailed incident reports submitted by citizens.'
+                            },
+                            broadcast: {
+                                title: 'Broadcast Alerts',
+                                text: 'Send important alerts and notifications to citizens in your jurisdiction.'
+                            },
+                            verify: {
+                                title: 'Verify Reports',
+                                text: 'Verify and validate incident reports submitted by citizens.'
+                            },
+                            cctv: {
+                                title: 'CCTV Monitoring',
+                                text: 'Access real-time CCTV feeds from different locations.'
+                            },
+                            crimeMap: {
+                                title: 'Crime Location',
+                                text: 'View crime hotspots and patterns on an interactive map.'
+                            },
+                            sos: {
+                                title: 'SOS Notifications',
+                                text: 'Respond to emergency SOS alerts from citizens.'
+                            },
+                            analytics: {
+                                title: 'Analytics',
+                                text: 'Access detailed analytics and insights about incidents and police activities.'
+                            },
+                            database: {
+                                title: 'Database Management',
+                                text: 'Access various databases including Offender and Missing Persons records.'
+                            },
+                            offenderDB: {
+                                title: 'Offender Database',
+                                text: 'Access and manage criminal records and offender information.'
+                            },
+                            missingDB: {
+                                title: 'Missing Person Database',
+                                text: 'Manage and track missing persons cases.'
+                            }
+                        },
+                        hi: {
+                            welcome: {
+                                title: 'पुलिस डैशबोर्ड में आपका स्वागत है',
+                                text: 'आइए आपको डैशबोर्ड की सभी सुविधाओं से परिचित कराएं।'
+                            },
+                            incident: {
+                                title: 'घटना प्रबंधन',
+                                text: 'घटना संबंधित सुविधाओं तक पहुंचने के लिए यहां क्लिक करें। इसमें घटना अलर्ट, रिपोर्ट, प्रसारण और रिपोर्ट सत्यापन शामिल हैं।'
+                            },
+                            incidentAlerts: {
+                                title: 'घटना अलर्ट',
+                                text: 'नागरिकों से प्राप्त सभी घटना अलर्ट देखें और प्रबंधित करें।'
+                            },
+                            incidentReport: {
+                                title: 'घटना रिपोर्ट',
+                                text: 'नागरिकों द्वारा जमा की गई विस्तृत घटना रिपोर्ट देखें।'
+                            },
+                            broadcast: {
+                                title: 'अलर्ट प्रसारण',
+                                text: 'अपने क्षेत्र के नागरिकों को महत्वपूर्ण अलर्ट और सूचनाएं भेजें।'
+                            },
+                            verify: {
+                                title: 'रिपोर्ट सत्यापन',
+                                text: 'नागरिकों द्वारा जमा की गई रिपोर्ट का सत्यापन करें।'
+                            },
+                            cctv: {
+                                title: 'सीसीटीवी निगरानी',
+                                text: 'विभिन्न स्थानों से रीयल-टाइम सीसीटीवी फीड देखें।'
+                            },
+                            crimeMap: {
+                                title: 'अपराध स्थान',
+                                text: 'इंटरैक्टिव मैप पर अपराध के हॉटस्पॉट और पैटर्न देखें।'
+                            },
+                            sos: {
+                                title: 'आपातकालीन सूचनाएं',
+                                text: 'नागरिकों से आपातकालीन अलर्ट का जवाब दें।'
+                            },
+                            analytics: {
+                                title: 'विश्लेषण',
+                                text: 'घटनाओं और पुलिस गतिविधियों के बारे में विस्तृत विश्लेषण और अंतर्दृष्टि प्राप्त करें।'
+                            },
+                            database: {
+                                title: 'डेटाबेस प्रबंधन',
+                                text: 'अपराधी और लापता व्यक्तियों के रिकॉर्ड सहित विभिन्न डेटाबेस तक पहुंचें।'
+                            },
+                            offenderDB: {
+                                title: 'अपराधी डेटाबेस',
+                                text: 'आपराधिक रिकॉर्ड और अपराधी की जानकारी देखें और प्रबंधित करें।'
+                            },
+                            missingDB: {
+                                title: 'लापता व्यक्ति डेटाबेस',
+                                text: 'लापता व्यक्तियों के मामलों को प्रबंधित और ट्रैक करें।'
+                            }
+                        }
+                    };
+
+                    const tour = new Shepherd.Tour({
+                        useModalOverlay: true,
+                        defaultStepOptions: {
+                            classes: 'shadow-xl rounded-xl',
+                            scrollTo: true,
+                            cancelIcon: {
+                                enabled: true
+                            },
+                            modalOverlayOpeningPadding: 4,
+                            modalOverlayOpeningRadius: 4,
+                            popperOptions: {
+                                modifiers: [
+                                    {
+                                        name: 'offset',
+                                        options: {
+                                            offset: [0, 12]
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    });
+
+                    const content = tourContent[language];
+                    const buttonTexts = {
+                        en: { back: 'Back', next: 'Next', skip: 'Skip', finish: 'Finish' },
+                        hi: { back: 'पीछे', next: 'आगे', skip: 'छोड़ें', finish: 'समाप्त' }
+                    };
+
+                    // Helper function to create buttons
+                    function createButtons(isFirst, isLast) {
+                        const buttons = [];
+                        if (!isFirst) {
+                            buttons.push({
+                                text: buttonTexts[language].back,
+                                action: () => tour.back(),
+                                classes: 'shepherd-button-secondary'
+                            });
+                        }
+                        if (isFirst) {
+                            buttons.push({
+                                text: buttonTexts[language].skip,
+                                action: () => tour.complete(),
+                                classes: 'shepherd-button-secondary'
+                            });
+                        }
+                        buttons.push({
+                            text: isLast ? buttonTexts[language].finish : buttonTexts[language].next,
+                            action: isLast ? () => tour.complete() : () => tour.next(),
+                            classes: 'shepherd-button-primary'
+                        });
+                        return buttons;
+                    }
+
+                    // Update the steps array in setupTour function
+                    const steps = [
+                        {
+                            id: 'welcome',
+                            element: '.sidebar',
+                            title: content.welcome.title,
+                            text: content.welcome.text
+                        },
+                        // Incident Management Section
+                        {
+                            id: 'incident',
+                            element: '#incidentDropdown',
+                            title: content.incident.title,
+                            text: content.incident.text,
+                            beforeShow: () => {
+                                document.getElementById('incidentMenu').classList.remove('hidden');
+                            }
+                        },
+                        {
+                            id: 'incidentAlerts',
+                            element: 'a[href="/police/incident-alerts"]',
+                            title: content.incidentAlerts.title,
+                            text: content.incidentAlerts.text
+                        },
+                        {
+                            id: 'incidentReport',
+                            element: 'a[href="/police/incident-report"]',
+                            title: content.incidentReport.title,
+                            text: content.incidentReport.text
+                        },
+                        {
+                            id: 'broadcast',
+                            element: 'a[href="/Police/Broadcast_Alert"]',
+                            title: content.broadcast.title,
+                            text: content.broadcast.text
+                        },
+                        {
+                            id: 'verify',
+                            element: 'a[href="/police/incident-verify"]',
+                            title: content.verify.title,
+                            text: content.verify.text,
+                            beforeNext: () => {
+                                document.getElementById('incidentMenu').classList.add('hidden');
+                            }
+                        },
+                        // CCTV Section
+                        {
+                            id: 'cctv',
+                            element: 'a[href="/police/cctv-feeds"]',
+                            title: content.cctv.title,
+                            text: content.cctv.text
+                        },
+                        // Crime Map
+                        {
+                            id: 'crimeMap',
+                            element: 'a[href="/police/crime-heatmap"]',
+                            title: content.crimeMap.title,
+                            text: content.crimeMap.text
+                        },
+                        // SOS Notifications
+                        {
+                            id: 'sos',
+                            element: 'a[href="/police/sos-notifications"]',
+                            title: content.sos.title,
+                            text: content.sos.text
+                        },
+                        // Analytics
+                        {
+                            id: 'analytics',
+                            element: 'a[href="/police/police-analytics"]',
+                            title: content.analytics.title,
+                            text: content.analytics.text
+                        },
+                        // Database Section
+                        {
+                            id: 'database',
+                            element: '#databaseDropdown',
+                            title: content.database.title,
+                            text: content.database.text,
+                            beforeShow: () => {
+                                document.getElementById('databaseMenu').classList.remove('hidden');
+                            }
+                        },
+                        {
+                            id: 'offenderDB',
+                            element: 'a[href="/police/offender-database"]',
+                            title: content.offenderDB.title,
+                            text: content.offenderDB.text
+                        },
+                        {
+                            id: 'missingDB',
+                            element: 'a[href="/Police/Missing_Person_Database"]',
+                            title: content.missingDB.title,
+                            text: content.missingDB.text,
+                            beforeNext: () => {
+                                document.getElementById('databaseMenu').classList.add('hidden');
+                            }
+                        }
+                    ];
+
+                    // Update how steps are added to the tour
+                    steps.forEach((step, index) => {
+                        const stepConfig = {
+                            id: step.id,
+                            title: step.title,
+                            text: step.text,
+                            attachTo: {
+                                element: step.element,
+                                on: 'right'
+                            },
+                            buttons: createButtons(index === 0, index === steps.length - 1),
+                            beforeShow: () => {
+                                if (step.beforeShow) {
+                                    step.beforeShow();
+                                }
+                            },
+                            advanceOn: {
+                                selector: '.shepherd-button-primary',
+                                event: 'click'
+                            }
+                        };
+
+                        tour.addStep(stepConfig);
+                    });
+
+                    // Add event listeners for navigation
+                    tour.on('show', (e) => {
+                        const currentStep = steps.find(step => step.id === e.step.id);
+                        if (currentStep && currentStep.beforeShow) {
+                            currentStep.beforeShow();
+                        }
+                    });
+
+                    tour.on('next', (e) => {
+                        const currentStep = steps.find(step => step.id === e.step.id);
+                        if (currentStep && currentStep.beforeNext) {
+                            currentStep.beforeNext();
+                        }
+                    });
+
+                    // Cleanup on tour end
+                    tour.on('complete', () => {
+                        document.getElementById('incidentMenu').classList.add('hidden');
+                        document.getElementById('databaseMenu').classList.add('hidden');
+                        localStorage.setItem('policeTourCompleted', 'true');
+                    });
+
+                    tour.on('cancel', () => {
+                        document.getElementById('incidentMenu').classList.add('hidden');
+                        document.getElementById('databaseMenu').classList.add('hidden');
+                    });
+
+                    tour.start();
+                }
+
+                // Function to show language selector
+                function showLanguageSelector() {
+                    document.getElementById('languageSelector').classList.remove('hidden');
+                }
+
+                // Function to start tour with selected language
+                window.startTour = function(language) {
+                    document.getElementById('languageSelector').classList.add('hidden');
+                    setTimeout(() => {
+                        setupTour(language);
+                    }, 100);
+                }
+
+                // Check if this is user's first visit
+                if (!localStorage.getItem('policeTourCompleted')) {
+                    showLanguageSelector();
+                }
+            });
+        </script>
+        
+        
+        </body>
+        </html>

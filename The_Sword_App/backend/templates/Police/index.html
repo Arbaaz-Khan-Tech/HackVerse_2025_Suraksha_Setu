@@ -1,0 +1,70 @@
+{% extends "police_base.html" %}
+
+{% block title %}
+Home - Citizen Safety App
+{% endblock %}
+
+{% block content %}
+
+        <div class="container mx-auto px-4 mt-20">
+            <h2 class="text-2xl font-bold mb-4 dark:text-white">Dashboard Overview</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- CCTV Feeds Summary -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+                    <h3 class="text-lg font-semibold mb-2 dark:text-white">CCTV Feeds</h3>
+                    <p class="text-gray-600 dark:text-gray-300">12 active feeds, 2 anomalies detected</p>
+                    <a href="cctv-feeds.html" class="text-primary hover:underline mt-2 inline-block">View Details</a>
+                </div>
+
+                <!-- Crime Heatmap Summary -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+                    <h3 class="text-lg font-semibold mb-2 dark:text-white">Crime Heatmap</h3>
+                    <p class="text-gray-600 dark:text-gray-300">3 high-activity zones identified</p>
+                    <a href="crime-heatmap.html" class="text-primary hover:underline mt-2 inline-block">View Map</a>
+                </div>
+
+                <!-- SOS Notifications Summary -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+                    <h3 class="text-lg font-semibold mb-2 dark:text-white">SOS Notifications</h3>
+                    <p class="text-gray-600 dark:text-gray-300">2 active SOS requests</p>
+                    <a href="sos-notifications.html" class="text-primary hover:underline mt-2 inline-block">View Requests</a>
+                </div>
+
+                <!-- Incident Alerts Summary -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+                    <h3 class="text-lg font-semibold mb-2 dark:text-white">Incident Alerts</h3>
+                    <p class="text-gray-600 dark:text-gray-300">5 new incidents reported</p>
+                    <a href="incident-alerts.html" class="text-primary hover:underline mt-2 inline-block">View Alerts</a>
+                </div>
+
+                <!-- Offender Database Summary -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+                    <h3 class="text-lg font-semibold mb-2 dark:text-white">Offender Database</h3>
+                    <p class="text-gray-600 dark:text-gray-300">1,234 records, last updated 2 hours ago</p>
+                    <a href="offender-database.html" class="text-primary hover:underline mt-2 inline-block">Search Database</a>
+                </div>
+
+                <!-- Report Verification Summary -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+                    <h3 class="text-lg font-semibold mb-2 dark:text-white">Report Verification</h3>
+                    <p class="text-gray-600 dark:text-gray-300">8 reports pending verification</p>
+                    <a href="report-verification.html" class="text-primary hover:underline mt-2 inline-block">View Queue</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Notifications Bar -->
+    <div class="fixed bottom-0 left-0 right-0 bg-gray-200 dark:bg-gray-700 p-2 transition-colors duration-200">
+        <div class="container mx-auto">
+            <div class="overflow-hidden h-6">
+                <div class="animate-marquee whitespace-nowrap">
+                    <span class="text-gray-800 dark:text-gray-200 mx-4">SOS: Robbery in progress at 123 Main St</span>
+                    <span class="text-gray-800 dark:text-gray-200 mx-4">Incident: Traffic accident reported on Highway 101</span>
+                    <span class="text-gray-800 dark:text-gray-200 mx-4">Alert: Suspicious activity detected in CCTV feed #7</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

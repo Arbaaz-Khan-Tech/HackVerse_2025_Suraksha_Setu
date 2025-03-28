@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOS Notifications - Police Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1e40af',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .sidebar {
+            transition: width 0.3s ease;
+        }
+        .sidebar.collapsed {
+            width: 64px;
+        }
+        .sidebar.expanded {
+            width: 250px;
+        }
+        .menu-text {
+            transition: opacity 0.3s ease;
+        }
+        .sidebar.collapsed .menu-text {
+            opacity: 0;
+            display: none;
+        }
+        #map {
+            height: 600px !important;  /* Increase height */
+            width: 100% !important;
+            border-radius: 8px;
+            border: 2px solid #e5e7eb;
+            z-index: 1; /* Add this */
+        }
+        .leaflet-container {
+            height: 100%;
+            width: 100%;
+            background: #f8f9fa !important; /* Add this */
+        }
+        .leaflet-tile-pane {
+            z-index: 2;
+        }
+        .leaflet-objects-pane {
+            z-index: 3;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 transition-colors duration-200">
+    <!-- Top Navigation -->
+    <nav class="bg-white dark:bg-gray-800 shadow-md fixed w-full top-0 z-50 transition-colors duration-200">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <button id="sidebarToggle" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full mr-2 transition-colors duration-200">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 class="text-xl font-bold dark:text-white">Police Dashboard</h1>
+                </div>
+                <div class="flex-1 max-w-2xl mx-4">
+                    <input type="text" placeholder="Search..." 
+                           class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-primary dark:bg-gray-700 dark:text-white dark:border-gray-600 transition-colors duration-200">
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="darkModeToggle" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors duration-200">
+                        <i class="fas fa-moon dark:text-white"></i>
+                    </button>
+                    <button class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors duration-200">
+                        <i class="fas fa-user-circle dark:text-white"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <div id="sidebar" class="sidebar expanded fixed left-0 top-16 h-screen bg-white dark:bg-gray-800 shadow-lg z-40 transition-colors duration-200">
+        <div class="py-4">
+            <a href="/police/cctv-feeds" class="flex items-center px-4 py-3 text-primary hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
+                <i class="fas fa-video w-6"></i>
+                <span class="menu-text ml-2 font-medium">Real-Time CCTV Feeds</span>
+            </a>
+            <a href="/police/crime-heatmap" class="flex items-center px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary transition-colors duration-200">
+                <i class="fas fa-map-marked-alt w-6"></i>
+                <span class="menu-text ml-2">Crime Heatmap</span>
+            </a>
+            <a href="/police/sos-notifications" class="flex items-center px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary transition-colors duration-200">
+                <i class="fas fa-exclamation-circle w-6"></i>
+                <span class="menu-text ml-2">SOS Notifications</span>
+            </a>
+            <a href="/police/incident-alerts" class="flex items-center px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary transition-colors duration-200">
+                <i class="fas fa-bell w-6"></i>
+                <span class="menu-text ml-2">Incident Alerts</span>
+            </a>
+            <a href="/police/offender-database" class="flex items-center px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary transition-colors duration-200">
+                <i class="fas fa-database w-6"></i>
+                <span class="menu-text ml-2">Offender Database</span>
+            </a>
+            <a href="/police/incident-report" class="flex items-center px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary transition-colors duration-200">
+                <i class="fas fa-file-alt w-6"></i>
+                <span class="menu-text ml-2">Incident Report</span>
+            </a>
+            <a href="/police/incident-verify" class="flex items-center px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary transition-colors duration-200">
+                <i class="fas fa-file-alt w-6"></i>
+                <span class="menu-text ml-2">Verify Reports</span>
+            </a>
+            <a href="/Police/Broadcast_Alert" class="flex items-center px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary transition-colors duration-200">
+                <i class="fas fa-file-alt w-6"></i>
+                <span class="menu-text ml-2">Broadcast Alerts</span>
+            </a>
+            <a href="/police/police-analytics" class="flex items-center px-4 py-3 text-primary hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
+                <i class="fas fa-video w-6"></i>
+                <span class="menu-text ml-2 font-medium">Real-Time CCTV Feeds</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="transition-all duration-300" id="mainContent">
+        <div class="container mx-auto px-4 mt-20">
+            <h2 class="text-2xl font-bold mb-4 dark:text-white">Live SOS Notifications</h2>
+            
+            <!-- Status Bar -->
+            <div class="bg-blue-100 dark:bg-blue-900 p-4 rounded-lg mb-4">
+                <p class="text-blue-800 dark:text-blue-200">
+                    <span id="activeSOSCount">0</span> Active SOS Alerts
+                    • Last Updated: <span id="lastUpdated">Just now</span>
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Map Section -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 min-h-[600px]">
+                    <div id="map" class="w-full h-full rounded-lg"></div>
+                    <div class="mt-2">
+                        <button id="centerMap" class="bg-blue-500 text-white px-4 py-2 rounded">
+                            Center Map
+                        </button>
+                        <span class="text-sm text-gray-500 dark:text-gray-400 ml-2">
+                            Click on markers for details
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Active SOS List -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold dark:text-white">Active SOS Alerts</h3>
+                        <button id="refreshButton" class="bg-green-500 text-white px-4 py-2 rounded">
+                            Refresh
+                        </button>
+                    </div>
+                    <div id="sosList" class="space-y-4 max-h-[500px] overflow-y-auto">
+                        <!-- SOS alerts will be dynamically added here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Notifications Bar -->
+    <div class="fixed bottom-0 left-0 right-0 bg-gray-200 dark:bg-gray-700 p-2 transition-colors duration-200">
+        <div class="container mx-auto">
+            <div class="overflow-hidden h-6">
+                <div class="animate-marquee whitespace-nowrap">
+                    <span class="text-gray-800 dark:text-gray-200 mx-4">SOS: Robbery in progress at 123 Main St</span>
+                    <span class="text-gray-800 dark:text-gray-200 mx-4">Incident: Traffic accident reported on Highway 101</span>
+                    <span class="text-gray-800 dark:text-gray-200 mx-4">Alert: Suspicious activity detected in CCTV feed #7</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Sound -->
+    <audio id="sosAlert" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            
+            function updateMainContentMargin() {
+                if (sidebar.classList.contains('collapsed')) {
+                    mainContent.style.marginLeft = '64px';
+                } else {
+                    mainContent.style.marginLeft = '250px';
+                }
+            }
+
+            // Initial margin
+            updateMainContentMargin();
+
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('collapsed');
+                sidebar.classList.toggle('expanded');
+                updateMainContentMargin();
+            });
+
+            // Dark mode toggle
+            darkModeToggle.addEventListener('click', function() {
+                document.documentElement.classList.toggle('dark');
+                const isDarkMode = document.documentElement.classList.contains('dark');
+                localStorage.setItem('darkMode', isDarkMode);
+                darkModeToggle.innerHTML = isDarkMode ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+                updateMapStyle();
+            });
+
+            // Check for saved dark mode preference
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.documentElement.classList.add('dark');
+                darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            }
+
+            // Initialize map with explicit options
+            const map = L.map('map', {
+                center: [19.0760, 72.8777],
+                zoom: 12,
+                zoomControl: true,
+                attributionControl: true,
+                scrollWheelZoom: true
+            });
+
+            // Add tile layer immediately
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19,
+                tileSize: 512,
+                zoomOffset: -1
+            }).addTo(map);
+
+            const sosMarkers = new Map(); // Rename to sosMarkers to avoid conflict
+
+            // Initialize Socket.IO
+            const socket = io(window.location.origin, {
+                transports: ['websocket', 'polling'],
+                reconnection: true,
+                reconnectionAttempts: 5
+            });
+
+            // Remove old markers map declaration (it was declared twice)
+            
+            socket.on('connect', () => {
+                console.log('Connected to server', socket.id);
+                socket.emit('join_police_room');
+            });
+
+            socket.on('sos_alert', (data) => {
+                console.log('Received SOS alert:', data);
+                handleNewSOS(data);
+            });
+
+            // Add handler for deactivation
+            socket.on('sos_deactivated', (data) => {
+                console.log('SOS deactivated:', data);
+                try {
+                    // Remove marker from map
+                    const marker = sosMarkers.get(data.citizen_id);
+                    if (marker) {
+                        map.removeLayer(marker);
+                        sosMarkers.delete(data.citizen_id);
+                    }
+
+                    // Remove from list
+                    const sosElement = document.querySelector(`[data-citizen-id="${data.citizen_id}"]`);
+                    if (sosElement) {
+                        sosElement.remove();
+                    }
+
+                    // Update count
+                    updateActiveSOSCount();
+
+                    // Refresh the list
+                    document.getElementById('refreshButton').click();
+                } catch (error) {
+                    console.error('Error handling SOS deactivation:', error);
+                }
+            });
+
+            function handleNewSOS(sosData) {
+                try {
+                    console.log('Processing SOS data:', sosData);
+                    const lat = parseFloat(sosData.location.latitude);
+                    const lng = parseFloat(sosData.location.longitude);
+                    
+                    if (isNaN(lat) || isNaN(lng)) {
+                        console.error('Invalid coordinates:', sosData.location);
+                        return;
+                    }
+
+                    // Add marker to map
+                    const marker = L.marker([lat, lng], {
+                        icon: L.divIcon({
+                            className: 'bg-red-500 w-4 h-4 rounded-full border-2 border-white',
+                            html: '<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>'
+                        })
+                    }).addTo(map);
+
+                    // Store marker reference using our renamed Map
+                    sosMarkers.set(sosData.citizen_id, marker);
+
+                    // Add popup to marker
+                    marker.bindPopup(createMarkerPopup(sosData)).openPopup();
+
+                    // Add to SOS list
+                    const sosElement = createSOSElement(sosData);
+                    document.getElementById('sosList').insertBefore(sosElement, document.getElementById('sosList').firstChild);
+
+                    // Center map on new marker
+                    map.setView([lat, lng], 15);
+
+                    // Update count and play sound
+                    updateActiveSOSCount();
+                    document.getElementById('sosAlert').play();
+                } catch (error) {
+                    console.error('Error handling SOS:', error);
+                }
+            }
+
+            function createSOSElement(sosData) {
+                const div = document.createElement('div');
+                div.className = 'bg-red-100 dark:bg-red-900 p-4 rounded-lg';
+                div.setAttribute('data-citizen-id', sosData.citizen_id); // Add this line
+                div.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="font-semibold text-red-800 dark:text-red-200">
+                                Emergency SOS #${sosData.citizen_id}
+                            </h4>
+                            <p class="text-sm text-red-700 dark:text-red-300">
+                                Location: ${sosData.location.latitude.toFixed(6)}, 
+                                ${sosData.location.longitude.toFixed(6)}
+                            </p>
+                            <p class="text-sm text-red-700 dark:text-red-300">
+                                Time: ${new Date(sosData.timestamp).toLocaleString()}
+                            </p>
+                        </div>
+                        <button onclick="handleSOSResponse('${sosData.citizen_id}')"
+                                class="bg-red-500 text-white px-3 py-1 rounded">
+                            Respond
+                        </button>
+                    </div>
+                `;
+                return div;
+            }
+
+            function createMarkerPopup(sosData) {
+                return `
+                    <div class="text-center">
+                        <h3 class="font-bold">Emergency SOS</h3>
+                        <p class="text-sm">Citizen ID: ${sosData.citizen_id}</p>
+                        <p class="text-sm">Time: ${new Date(sosData.timestamp).toLocaleString()}</p>
+                        <button onclick="handleSOSResponse('${sosData.citizen_id}')"
+                                class="bg-red-500 text-white px-2 py-1 rounded mt-2">
+                            Respond
+                        </button>
+                    </div>
+                `;
+            }
+
+            window.handleSOSResponse = function(citizenId) {
+                // Add your response logic here
+                alert(`Responding to SOS from citizen ${citizenId}`);
+            };
+
+            // Update the map style based on dark mode
+            function updateMapStyle() {
+                const isDarkMode = document.documentElement.classList.contains('dark');
+                
+                // Remove existing tile layers
+                map.eachLayer((layer) => {
+                    if (layer instanceof L.TileLayer) {
+                        map.removeLayer(layer);
+                    }
+                });
+
+                // Add appropriate tile layer
+                if (isDarkMode) {
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                        attribution: '©OpenStreetMap, ©CartoDB',
+                        maxZoom: 19,
+                        tileSize: 512,
+                        zoomOffset: -1
+                    }).addTo(map);
+                } else {
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '©OpenStreetMap',
+                        maxZoom: 19,
+                        tileSize: 512,
+                        zoomOffset: -1
+                    }).addTo(map);
+                }
+            }
+
+            // Force map to refresh after initialization
+            setTimeout(() => {
+                map.invalidateSize();
+                updateMapStyle();
+            }, 100);
+
+            // Center map button
+            document.getElementById('centerMap').addEventListener('click', () => {
+                if (sosMarkers.size > 0) {
+                    const bounds = L.latLngBounds([...sosMarkers.values()].map(m => m.getLatLng()));
+                    map.fitBounds(bounds);
+                }
+            });
+
+            // Refresh button
+            document.getElementById('refreshButton').addEventListener('click', async () => {
+                try {
+                    const response = await fetch('/api/citizen/sos');
+                    const data = await response.json();
+                    
+                    // Clear all existing markers and list items
+                    sosMarkers.forEach(marker => map.removeLayer(marker));
+                    sosMarkers.clear();
+                    document.getElementById('sosList').innerHTML = '';
+                    
+                    // Add only active alerts
+                    data.filter(alert => alert.status === 'active')
+                        .forEach(handleNewSOS);
+                    
+                    updateActiveSOSCount();
+                } catch (error) {
+                    console.error('Error refreshing SOS data:', error);
+                }
+            });
+
+            function updateActiveSOSCount() {
+                document.getElementById('activeSOSCount').textContent = sosMarkers.size;
+                document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+            }
+
+            // Load initial data
+            fetch('/api/citizen/sos')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Initial SOS data:', data);
+                    if (Array.isArray(data)) {
+                        data.forEach(handleNewSOS);
+                    }
+                })
+                .catch(error => console.error('Error loading initial SOS data:', error));
+
+            // Initialize map style
+            updateMapStyle();
+        });
+    </script>
+</body>
+</html>
+

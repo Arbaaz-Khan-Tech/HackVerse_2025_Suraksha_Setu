@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SurakshaSetu - Interactive Safety Navigation</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"
+    />
+    <style>
+      body {
+        margin: 0;
+        padding: 20px;
+        font-family: "Arial", sans-serif;
+      }
+      #map {
+        height: 500px;
+        border-radius: 15px;
+        margin: 20px 0;
+      }
+      .notification {
+        position: fixed;
+        bottom: 20px;
+        right: -350px;
+        width: 300px;
+        padding: 20px;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: 0.5s ease;
+        z-index: 1000;
+      }
+      .notification.active {
+        right: 20px;
+      }
+      .controls {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 1000;
+        background: white;
+        padding: 10px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="controls">
+      <button onclick="setDestinationMode()">Select Destination</button>
+      <div
+        id="instructions"
+        style="margin-top: 10px; font-size: 0.9em; color: #666"
+      >
+        Click the button above then click on map to set destination
+      </div>
+    </div>
+    <div id="map"></div>
+    <div class="notification">
+      <div class="alert">⚠️ Safety Alert!</div>
+      <p id="alert-text"></p>
+      <div class="reassurance" id="reassurance"></div>
+      <button onclick="changeRoute()">Switch Route</button>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
+    <script>
+      let map, routingControl, currentRoute;
+      let userMarker, destinationMarker, dangerZone;
+      let currentLocation, destination, dangerPoint;
+
+      function initMap() {
+        map = L.map("map").setView([0, 0], 13);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(
+          map
+        );
+
+        // Add geocoder search
+        L.Control.geocoder({
+          defaultMarkGeocode: false,
+          position: "topright",
+        })
+          .on("markgeocode", (e) => {
+            setDestination(e.geocode.center);
+          })
+          .addTo(map);
+
+        // Get current location with error handling
+        if (navigator.geolocation) {
+          document.getElementById("instructions").innerHTML =
+            "Allowing location access...";
+
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              currentLocation = L.latLng(
+                position.coords.latitude,
+                position.coords.longitude
+              );
+              map.setView(currentLocation, 15);
+
+              // Add user marker
+              userMarker = L.marker(currentLocation, {
+                icon: L.divIcon({
+                  html: "📍",
+                  iconSize: [40, 40],
+                }),
+              }).addTo(map);
+
+              document.getElementById("instructions").innerHTML =
+                "Click 'Select Destination' then choose location";
+            },
+            (error) => {
+              console.error("Geolocation error:", error);
+              document.getElementById("instructions").innerHTML =
+                "Location access denied. Please enable location permissions and refresh.";
+              map.setView([20.5937, 78.9629], 5);
+            }
+          );
+        } else {
+          document.getElementById("instructions").innerHTML =
+            "Geolocation is not supported by your browser. Please update your browser.";
+        }
+      }
+
+      function setDestinationMode() {
+        destinationMode = true;
+        map.on("click", handleMapClick);
+        document.getElementById("instructions").innerHTML =
+          "Click on map to set destination";
+      }
+
+      function handleMapClick(e) {
+        if (destinationMode && e.latlng) {
+          setDestination(e.latlng);
+          destinationMode = false;
+          map.off("click", handleMapClick);
+        }
+      }
+
+      function setDestination(dest) {
+        if (destinationMarker) map.removeLayer(destinationMarker);
+        destination = dest;
+        destinationMarker = L.marker(dest, {
+          icon: L.icon({
+            iconUrl:
+              "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png",
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+          }),
+        })
+          .addTo(map)
+          .bindPopup("Destination");
+        calculateRoute();
+      }
+
+      function calculateRoute() {
+        if (!currentLocation || !destination) return;
+        if (routingControl) map.removeControl(routingControl);
+
+        routingControl = L.Routing.control({
+          waypoints: [currentLocation, destination],
+          routeWhileDragging: false,
+          show: false,
+          lineOptions: { styles: [{ color: "#4a90e2", weight: 5 }] },
+          router: L.Routing.osrmv1({
+            serviceUrl: "https://router.project-osrm.org/route/v1",
+          }),
+        }).addTo(map);
+
+        routingControl.on("routesfound", (e) => {
+          currentRoute = e.routes[0];
+          showSafetyAlert();
+        });
+      }
+
+      function showSafetyAlert() {
+        const notification = document.querySelector(".notification");
+        const alertText = document.getElementById("alert-text");
+
+        // Get midpoint of route for danger zone
+        dangerPoint =
+          currentRoute.coordinates[
+            Math.floor(currentRoute.coordinates.length / 2)
+          ];
+
+        // Add danger zone (1km radius)
+        if (dangerZone) map.removeLayer(dangerZone);
+        dangerZone = L.circle(dangerPoint, {
+          color: "#ff0000",
+          fillColor: "#f03",
+          fillOpacity: 0.2,
+          radius: 1000, // 1km radius
+        })
+          .addTo(map)
+          .bindPopup("Danger Zone (1km radius)");
+
+        alertText.textContent = `Safety alert: Potential risk detected within 1km of ${dangerPoint.lat.toFixed(
+          4
+        )}, ${dangerPoint.lng.toFixed(4)}`;
+        notification.classList.add("active");
+      }
+
+      function changeRoute() {
+        if (!dangerPoint) return;
+
+        // Calculate route avoiding danger zone
+        L.Routing.osrmv1({
+          serviceUrl: "https://router.project-osrm.org/route/v1",
+        }).route(
+          [currentLocation, destination],
+          {
+            avoid: `polygon:${getAvoidanceCoordinates(dangerPoint, 1000).join(
+              " "
+            )}`,
+          },
+          (err, routes) => {
+            if (err || !routes.length) return;
+
+            // Remove old route and show new safe route
+            if (routingControl) map.removeControl(routingControl);
+
+            routingControl = L.Routing.control({
+              waypoints: [currentLocation, destination],
+              routeWhileDragging: false,
+              show: false,
+              lineOptions: { styles: [{ color: "#00c853", weight: 5 }] },
+              router: L.Routing.osrmv1({
+                serviceUrl: "https://router.project-osrm.org/route/v1",
+              }),
+            }).addTo(map);
+
+            document.getElementById("reassurance").innerHTML =
+              "Police notified! Safe route avoiding 1km danger zone activated.";
+          }
+        );
+      }
+
+      function getAvoidanceCoordinates(center, radius) {
+        // Generate polygon coordinates to avoid around the danger zone
+        const coordinates = [];
+        const steps = 20;
+        for (let i = 0; i <= steps; i++) {
+          const angle = (i * 360) / steps;
+          const point = L.GeometryUtil.destination(center, angle, radius);
+          coordinates.push(`${point.lng},${point.lat}`);
+        }
+        return coordinates;
+      }
+
+      // Initialize the application
+      initMap();
+    </script>
+  </body>
+</html>
