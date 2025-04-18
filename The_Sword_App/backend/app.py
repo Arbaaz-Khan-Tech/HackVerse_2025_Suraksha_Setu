@@ -154,29 +154,43 @@ def citizen_geofencing():
     if request.method == 'POST':
         try:
             geofence_data = request.json
+            # Add validation
+            required_fields = ['name', 'radius', 'coordinate']
+            if not all(field in geofence_data for field in required_fields):
+                return jsonify({'status': 'error', 'message': 'Missing required fields'}), 400
+
+            # Convert coordinate values to float
+            geofence_data['coordinate'] = {
+                'latitude': float(geofence_data['coordinate']['latitude']),
+                'longitude': float(geofence_data['coordinate']['longitude'])
+            }
+            
             result = db.geofences.insert_one(geofence_data)
             return jsonify({
                 'status': 'success',
-                'message': 'Geofence added successfully',
-                'id': str(result.inserted_id)
+                'geofence': {
+                    '_id': str(result.inserted_id),
+                    'name': geofence_data['name'],
+                    'radius': geofence_data['radius'],
+                    'coordinate': geofence_data['coordinate']
+                }
             })
         except Exception as e:
-            return jsonify({
-                'status': 'error',
-                'message': str(e)
-            }), 500
-    else:  # GET request
-        try:
-            geofences = list(db.geofences.find({}, {'_id': 0}))
-            return jsonify({
-                'status': 'success',
-                'geofences': geofences
-            })
-        except Exception as e:
-            return jsonify({
-                'status': 'error',
-                'message': str(e)
-            }), 500
+            return jsonify({'status': 'error', 'message': str(e)}), 500
+
+    # GET request
+    try:
+        geofences = list(db.geofences.find({}))
+        # Convert ObjectId and clean data
+        for geofence in geofences:
+            geofence['_id'] = str(geofence['_id'])
+            geofence['coordinate'] = {
+                'latitude': float(geofence['coordinate']['latitude']),
+                'longitude': float(geofence['coordinate']['longitude'])
+            }
+        return jsonify({'status': 'success', 'geofences': geofences})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/api/citizen/alerts', methods=['GET'])
 def citizen_alerts():
@@ -202,7 +216,7 @@ def citizen_incident_report():
         evidence_dir = os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'evidence')
         os.makedirs(evidence_dir, exist_ok=True)
 
-        # Handle file upload
+        # Handle file upload 
         evidence_file = request.files.get('evidence')
         evidence_path = None
         
