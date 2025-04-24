@@ -52,33 +52,37 @@ Home - Citizen Safety App
                     class="text-gray-500 hover:text-gray-800 dark:hover:text-gray-300">More Details ↓</button>
                 </div>
 
-                <!-- Expandable Details -->
+            <!-- Expandable Details -->
             <div id="details-{{ incident._id }}" class="hidden mt-4">
                 <p class="dark:text-gray-400">Description: {{ incident.description }}</p>
                 <div class="mt-2">
                     <h4 class="text-sm font-medium dark:text-gray-300">Evidence Files:</h4>
                     <div class="grid grid-cols-2 gap-4 mt-2">
-                        {% for file in incident.evidence_files %}
-                            {% if file.endswith('.jpg') or file.endswith('.jpeg') or file.endswith('.png') or file.endswith('.gif') %}
-                            <!-- Display Image -->
-                            <img src="{{ file }}" alt="Evidence" class="rounded-lg shadow-md">
-                            {% elif file.endswith('.mp4') or file.endswith('.webm') or file.endswith('.ogg') %}
-                            <!-- Display Video -->
-                            <video controls class="rounded-lg shadow-md">
-                                <source src="{{ file }}" type="video/{{ file.split('.')[-1] }}">
-                                Your browser does not support the video tag.
-                            </video>
+                        {% if incident.evidence_files %}
+                            {% if incident.evidence_files.original %}
+                                {% if incident.evidence_files.original.endswith('.jpg') or 
+                                      incident.evidence_files.original.endswith('.jpeg') or 
+                                      incident.evidence_files.original.endswith('.png') %}
+                                    <img src="{{ url_for('static', filename=incident.evidence_files.original.split('/static/')[-1]) }}" 
+                                         alt="Evidence" 
+                                         class="rounded-lg shadow-md">
+                                {% elif incident.evidence_files.original.endswith('.mp4') or 
+                                        incident.evidence_files.original.endswith('.webm') %}
+                                    <video controls class="rounded-lg shadow-md">
+                                        <source src="{{ url_for('static', filename=incident.evidence_files.original.split('/static/')[-1]) }}" 
+                                                type="video/{{ incident.evidence_files.original.split('.')[-1] }}">
+                                        Your browser does not support the video tag.
+                                    </video>
+                                {% endif %}
                             {% endif %}
-                        {% endfor %}
+                        {% endif %}
                     </div>
-                    
                 </div>
             </div>
-
-                </div>
-            {% endfor %}
-            {% endif %}
         </div>
+        {% endfor %}  <!-- This closes the incident loop -->
+    {% endif %}  <!-- This closes the else condition -->
+</div>
     </main>
 
     <!-- Success/Error Modal -->
