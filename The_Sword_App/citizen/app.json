@@ -46,6 +46,14 @@
           "photosPermission": "Allow the app to access your photos.",
           "cameraPermission": "Allow the app to access your camera."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#ffffff",
+          "sounds": ["./assets/notification-sound.wav"]
+        }
       ]
     ],
     "extra": {
