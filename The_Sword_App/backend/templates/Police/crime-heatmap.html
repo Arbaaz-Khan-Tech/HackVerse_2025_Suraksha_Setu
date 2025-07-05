@@ -304,12 +304,89 @@
 
             // Initialize map with explicit options
             const map = L.map('map', {
-                center: [19.0760, 72.8777], // Mumbai coordinates
                 zoom: 12,
                 zoomControl: true,
                 attributionControl: true,
                 scrollWheelZoom: true
             });
+
+            // Improved geolocation with multiple fallbacks
+            function locateUser() {
+                if (!navigator.geolocation) {
+                    map.setView([19.0760, 72.8777], 12);
+                    alert('Geolocation is not supported by your browser. Using default location.');
+                    return;
+                }
+
+                const geoOptions = {
+                    enableHighAccuracy: true,
+                    timeout: 15000,
+                    maximumAge: 0
+                };
+
+                // First try: High accuracy GPS
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const { latitude, longitude, accuracy } = position.coords;
+                        if (accuracy > 1000) { // If accuracy is poor (>1km)
+                            retryWithIPFallback();
+                            return;
+                        }
+                        showUserLocation(latitude, longitude, accuracy);
+                    },
+                    (error) => {
+                        console.error("High accuracy GPS failed:", error);
+                        retryWithIPFallback();
+                    },
+                    geoOptions
+                );
+            }
+
+            function retryWithIPFallback() {
+                // Fallback to IP-based geolocation
+                fetch('https://ipapi.co/json/')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.latitude && data.longitude) {
+                            showUserLocation(data.latitude, data.longitude, 5000); // IP location has lower accuracy
+                        } else {
+                            throw new Error('IP location failed');
+                        }
+                    })
+                    .catch(error => {
+                        console.error("IP geolocation failed:", error);
+                        map.setView([19.0760, 72.8777], 12);
+                        alert('Could not determine your location. Using default location.');
+                    });
+            }
+
+            function showUserLocation(lat, lng, accuracy) {
+                map.setView([lat, lng], 15);
+                
+                const userIcon = L.divIcon({
+                    html: '<i class="fas fa-user-circle text-blue-600 text-3xl"></i>',
+                    className: 'custom-div-icon',
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 30]
+                });
+
+                const marker = L.marker([lat, lng], {icon: userIcon})
+                    .addTo(map)
+                    .bindPopup('Your current location (Accuracy: ~' + Math.round(accuracy) + ' meters)')
+                    .openPopup();
+
+                if (accuracy > 50) { // Only show accuracy circle if accuracy is low
+                    L.circle([lat, lng], {
+                        color: 'blue',
+                        fillColor: '#1e40af',
+                        fillOpacity: 0.2,
+                        radius: accuracy
+                    }).addTo(map);
+                }
+            }
+
+            // Start location process
+            locateUser();
 
             // Add tile layer immediately
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {

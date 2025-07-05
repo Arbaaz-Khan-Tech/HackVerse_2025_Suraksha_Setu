@@ -106,69 +106,137 @@ const GeofencingScreen = () => {
     checkGeofenceIncidents([newIncident]);
   };
 
-  const checkGeofenceIncidents = (incidents) => {
-    incidents.forEach(incident => {
-      // Validate incident data
-      if (!incident._id || !incident.lat || !incident.lng) {
-        console.warn('Invalid incident format:', incident);
-        return;
-      }
-
-      geofences.forEach(geofence => {
-        try {
-          const incidentCoords = {
-            latitude: parseFloat(incident.lat),
-            longitude: parseFloat(incident.lng)
-          };
-          
-          const distance = haversineDistance(geofence.coordinate, incidentCoords);
-          const notificationId = `${geofence._id}-${incident._id}`;
-
-          if (distance <= geofence.radius && !shownNotifications.has(notificationId)) {
-            sendNotification(geofence, incident, distance);
-            setShownNotifications(prev => new Set([...prev, notificationId]));
-          }
-        } catch (e) {
-          console.error('Error checking incident:', e);
-        }
-      });
+  // Improved notification handler
+  useEffect(() => {
+    const subscription = Notifications.addNotificationReceivedListener(notification => {
+      console.log('Notification received:', notification);
     });
-  };
 
-  const sendNotification = async (geofence, incident, distance) => {
-    try {
-      // System notification
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: `🚨 Alert in ${geofence.name}!`,
-          body: `${incident.type || 'Incident'} detected ${Math.round(distance)}km away`,
-          sound: true,
-          data: { incident }
-        },
-        trigger: null
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  // Update the checkGeofenceIncidents function
+  const checkGeofenceIncidents = (incidents) => {
+      console.log('Checking incidents:', incidents);
+      if (!incidents || !Array.isArray(incidents) || incidents.length === 0) {
+          console.log('No incidents to check');
+          return;
+      }
+      
+      // Create a copy of the shown notifications set
+      const newShownNotifications = new Set([...shownNotifications]);
+      let shouldUpdate = false;
+  
+      incidents.forEach(incident => {
+          // Skip if incident doesn't have required fields
+          if (!incident) {
+              console.warn('Null incident received');
+              return;
+          }
+          
+          // Generate a unique ID for this incident if it doesn't have one
+          const incidentId = incident._id || `temp-${Date.now()}-${Math.random()}`;
+          
+          // Ensure lat/lng are numbers
+          let lat, lng;
+          try {
+              lat = typeof incident.lat === 'number' ? incident.lat : parseFloat(incident.lat);
+              lng = typeof incident.lng === 'number' ? incident.lng : parseFloat(incident.lng);
+              
+              if (isNaN(lat) || isNaN(lng)) {
+                  console.warn('Invalid coordinates:', incident);
+                  return;
+              }
+          } catch (e) {
+              console.error('Error parsing coordinates:', e, incident);
+              return;
+          }
+  
+          // Check each geofence
+          geofences.forEach(geofence => {
+              if (!geofence || !geofence.coordinate) {
+                  console.warn('Invalid geofence:', geofence);
+                  return;
+              }
+              
+              try {
+                  const incidentCoords = {
+                      latitude: lat,
+                      longitude: lng
+                  };
+                  
+                  const distance = haversineDistance(geofence.coordinate, incidentCoords);
+                  const notificationId = `${geofence._id || 'unknown'}-${incidentId}`;
+                  
+                  console.log(`Distance check: ${distance} <= ${geofence.radius}?`, 
+                              distance <= geofence.radius);
+                  
+                  if (distance <= geofence.radius && !newShownNotifications.has(notificationId)) {
+                      console.log('Sending notification for incident in geofence:', 
+                                  geofence.name, incident.type);
+                      
+                      // Send the notification
+                      sendNotification(geofence, incident, distance);
+                      
+                      // Mark as shown
+                      newShownNotifications.add(notificationId);
+                      shouldUpdate = true;
+                  }
+              } catch (e) {
+                  console.error('Error checking incident against geofence:', e);
+              }
+          });
       });
-
-      // In-app alert
-      Alert.alert(
-        `Geofence Alert: ${geofence.name}`,
-        `New incident detected within your safety zone:
-        
+  
+      if (shouldUpdate) {
+          console.log('Updating shown notifications');
+          setShownNotifications(newShownNotifications);
+      }
+  };
+  
+  // Update the sendNotification function for better reliability
+  const sendNotification = async (geofence, incident, distance) => {
+      try {
+          console.log('Preparing notification for:', incident.type);
+          
+          // Format distance for display
+          const distanceText = distance < 1 ? 
+              `${Math.round(distance * 1000)}m` : 
+              `${distance.toFixed(1)}km`;
+              
+          // Prepare notification content
+          const title = `🚨 Alert in ${geofence.name || 'Safety Zone'}`;
+          const body = `${incident.type || 'Incident'} detected ${distanceText} away`;
+          
+          console.log('Scheduling notification:', title, body);
+          
+          // Show in-app alert first (more reliable)
+          Alert.alert(
+              title,
+              `New incident detected within your safety zone:
+              
 Type: ${incident.type || 'Unknown'}
 Severity: ${incident.severity || 'Medium'}
-Distance: ${Math.round(distance)}km`,
-        [
-          { text: 'OK', onPress: () => console.log('Alert dismissed') },
-          {
-            text: 'View Details',
-            onPress: () => {
-              // Add navigation logic here if needed
-            }
-          }
-        ]
-      );
-    } catch (error) {
-      console.error('Notification error:', error);
-    }
+Distance: ${distanceText}`,
+              [{ text: 'OK' }]
+          );
+          
+          // Then try system notification
+          await Notifications.scheduleNotificationAsync({
+              content: {
+                  title: title,
+                  body: body,
+                  data: { incident },
+              },
+              trigger: null, // Immediate delivery
+          });
+          
+          console.log('Notification scheduled successfully');
+      } catch (error) {
+          console.error('Failed to send notification:', error);
+      }
   };
 
 

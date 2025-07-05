@@ -391,25 +391,28 @@ def citizen_crime_heatmap():
 @app.route('/api/crime-data', methods=['GET'])
 def get_crime_data():
     try:
-        # Add some default data if collection is empty
-        if db.heatmap.count_documents({}) == 0:
-            default_data = [
-                {
-                    "lat": "19.0760",
-                    "lng": "72.8777",
-                    "type": "Theft",
-                    "severity": "medium",
-                    "description": "Sample incident",
-                    "intensity": 0.5
-                }
-            ]
-            db.heatmap.insert_many(default_data)
+        # Get data from the database
+        data = list(heatmap_collection.find({}))
         
-        data = list(db.heatmap.find({}, {"_id": 0}))
-        return jsonify(data)
+        # Process data to ensure proper format
+        processed_data = []
+        for item in data:
+            # Convert ObjectId to string
+            if '_id' in item:
+                item['_id'] = str(item['_id'])
+            
+            # Ensure lat/lng are floats
+            if 'lat' in item and item['lat']:
+                item['lat'] = float(item['lat'])
+            if 'lng' in item and item['lng']:
+                item['lng'] = float(item['lng'])
+                
+            processed_data.append(item)
+            
+        return jsonify(processed_data)
     except Exception as e:
-        print("Error fetching crime data:", e)
-        return jsonify([])  # Return empty array instead of error
+        app.logger.error(f"Error in get_crime_data: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/report-crime', methods=['POST'])
 def report_crime():

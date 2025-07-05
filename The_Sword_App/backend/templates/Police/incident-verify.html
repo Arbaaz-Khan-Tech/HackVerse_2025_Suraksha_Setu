@@ -65,10 +65,10 @@ Home - Citizen Safety App
                                       incident.evidence_files.original.endswith('.png') %}
                                     <img src="{{ url_for('static', filename=incident.evidence_files.original.split('/static/')[-1]) }}" 
                                          alt="Evidence" 
-                                         class="rounded-lg shadow-md">
+                                         class="rounded-lg shadow-md w-full h-48 object-cover">
                                 {% elif incident.evidence_files.original.endswith('.mp4') or 
                                         incident.evidence_files.original.endswith('.webm') %}
-                                    <video controls class="rounded-lg shadow-md">
+                                    <video controls class="rounded-lg shadow-md w-full h-48 object-cover">
                                         <source src="{{ url_for('static', filename=incident.evidence_files.original.split('/static/')[-1]) }}" 
                                                 type="video/{{ incident.evidence_files.original.split('.')[-1] }}">
                                         Your browser does not support the video tag.
