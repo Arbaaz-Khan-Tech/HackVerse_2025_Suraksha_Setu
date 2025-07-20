@@ -491,21 +491,40 @@
                 const severityClass = data.severity === 'high' ? 'severity-high' : 
                                      data.severity === 'medium' ? 'severity-medium' : 'severity-low';
                 
+                // Format date - use reported_at if available, otherwise current date
+                let reportDate;
+                try {
+                    if (data.reported_at) {
+                        reportDate = new Date(data.reported_at).toLocaleString();
+                    } else {
+                        reportDate = new Date().toLocaleString();
+                    }
+                } catch (e) {
+                    reportDate = new Date().toLocaleString();
+                }
+                
+                // Ensure data values exist or provide defaults
+                const type = data.type || 'Unknown';
+                const severity = data.severity || 'Unknown';
+                const lat = data.lat ? parseFloat(data.lat).toFixed(6) : '0.000000';
+                const lng = data.lng ? parseFloat(data.lng).toFixed(6) : '0.000000';
+                const description = data.description ? data.description.substring(0, 50) + (data.description.length > 50 ? '...' : '') : 'No description';
+                
                 tr.innerHTML = `
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="text-sm font-medium text-gray-900 dark:text-white">${data.type}</span>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white">${type}</span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="crime-type-badge ${severityClass}">${data.severity}</span>
+                        <span class="crime-type-badge ${severityClass}">${severity}</span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="text-sm text-gray-500 dark:text-gray-400">${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}</span>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">${lat}, ${lng}</span>
                     </td>
                     <td class="px-6 py-4">
-                        <span class="text-sm text-gray-500 dark:text-gray-400">${data.description.substring(0, 50)}${data.description.length > 50 ? '...' : ''}</span>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">${description}</span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="text-sm text-gray-500 dark:text-gray-400">${new Date().toLocaleString()}</span>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">${reportDate}</span>
                     </td>
                 `;
                 
@@ -561,51 +580,70 @@
             // Refresh map button
             document.getElementById('refreshMap').addEventListener('click', async () => {
                 try {
-                    const response = await fetch('/api/markers');
+                    const response = await fetch('/api/crime-data');
                     const data = await response.json();
                     
                     // Clear existing markers
                     markers.forEach(marker => map.removeLayer(marker));
                     markers.clear();
                     
-                    // Add markers from data
+                    // Clear existing reports
+                    document.getElementById('recentReports').innerHTML = '';
+                    
+                    // Add markers from data and populate recent reports
                     data.forEach(markerData => {
                         const marker = L.marker([markerData.lat, markerData.lng])
                             .bindPopup(`
-                                <strong>${markerData.title}</strong><br>
-                                Priority: ${markerData.priority}
+                                <strong>${markerData.type || 'Unknown'}</strong><br>
+                                Severity: ${markerData.severity || 'Unknown'}<br>
+                                ${markerData.description || 'No description'}
                             `)
                             .addTo(map);
+                        markers.set(markerData._id || `${markerData.lat}-${markerData.lng}`, marker);
                         
-                        markers.set(markerData.id, marker);
+                        // Add to recent reports table
+                        addToRecentReports(markerData);
                     });
                     
-                    // Update last updated time
+                    // Update count and last updated time
+                    updateCrimeCount();
                     document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
                     
+                    console.log(`Loaded ${data.length} crime markers from database`);
                 } catch (error) {
                     console.error('Error refreshing markers:', error);
+                    alert('Error refreshing crime data. Please try again.');
                 }
             });
 
-            // Load existing markers
-            fetch('/api/markers')
+            // Load existing markers and populate recent reports
+            fetch('/api/crime-data')
                 .then(response => response.json())
                 .then(data => {
+                    // Clear existing reports
+                    document.getElementById('recentReports').innerHTML = '';
+                    // Clear existing markers
+                    markers.forEach(marker => map.removeLayer(marker));
+                    markers.clear();
+                    
                     data.forEach(markerData => {
+                        // Add marker to map
                         const marker = L.marker([markerData.lat, markerData.lng])
                             .bindPopup(`
-                                <strong>${markerData.title}</strong><br>
-                                Priority: ${markerData.priority}
+                                <strong>${markerData.type}</strong><br>
+                                Severity: ${markerData.severity}<br>
+                                ${markerData.description}
                             `)
                             .addTo(map);
+                        markers.set(markerData._id || `${markerData.lat}-${markerData.lng}`, marker);
                         
-                        // Add to markers map with some unique ID
-                        markers.set(markerData.id || `${markerData.lat}-${markerData.lng}`, marker);
+                        // Add to recent reports table
+                        addToRecentReports(markerData);
                     });
                     
                     // Update count
                     document.getElementById('crimeCount').textContent = data.length;
+                    document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
                 })
                 .catch(error => console.error('Error loading markers:', error));
 
