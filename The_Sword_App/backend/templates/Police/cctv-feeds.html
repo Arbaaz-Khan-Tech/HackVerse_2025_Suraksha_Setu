@@ -1,13 +1,9 @@
 {% extends "police_base.html" %}
 
-{% block title %}
-Home - Citizen Safety App
-{% endblock %}
+{% block title %}CCTV Feeds - Police{% endblock %}
 
 {% block content %}
-  
-        <div class="container mx-auto px-4 mt-20">
-            <h2 class="text-2xl font-bold mb-4 dark:text-white">Real-Time CCTV Feeds</h2>
+<h2 class="text-2xl font-bold mb-4 dark:text-white">Real-Time CCTV Feeds</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- CCTV Feed 1 -->
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
@@ -51,8 +47,6 @@ Home - Citizen Safety App
                     <p class="text-gray-600 dark:text-gray-300 text-sm">Last updated: 30 seconds ago</p>
                 </div>
             </div>
-        </div>
-    </main>
 
     <!-- Feed Overlay -->
     <div id="feedOverlay" class="feed-overlay">

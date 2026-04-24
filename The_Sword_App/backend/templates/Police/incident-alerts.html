@@ -1,13 +1,9 @@
 {% extends "police_base.html" %}
 
-{% block title %}
-Home - Citizen Safety App
-{% endblock %}
+{% block title %}Incident Alerts - Police{% endblock %}
 
 {% block content %}
-    
-    <div class="container mx-auto px-4 mt-16">
-        <h2 class="text-2xl font-bold mb-6 dark:text-white">Incident Alerts</h2>
+<h2 class="text-2xl font-bold mb-6 dark:text-white">Incident Alerts</h2>
 
         <!-- Fallback Message -->
         {% if incidents|length == 0 %}
@@ -97,9 +93,6 @@ Home - Citizen Safety App
         </div>
         {% endfor %}
         {% endif %}
-    </div>
-</main>
-
 
 <!-- Success/Error Modal -->
 <div id="statusModal" class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
