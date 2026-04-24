@@ -33,7 +33,7 @@ DETECTOR_BACKEND = os.environ.get("FACE_DETECTOR_BACKEND", "mtcnn")
 EMBED_MODEL = os.environ.get("FACE_EMBED_MODEL", "Facenet")
 MATCH_THRESHOLD = float(os.environ.get("FACE_MATCH_THRESHOLD", "0.6"))
 FRAME_INTERVAL = int(os.environ.get("FACE_FRAME_INTERVAL", "15"))
-MIN_FACE_SIZE = int(os.environ.get("FACE_MIN_SIZE", "60"))
+MIN_FACE_SIZE = int(os.environ.get("FACE_MIN_SIZE", "40"))
 DEBOUNCE_SECONDS = 10
 
 print(f"[FACE] detector={DETECTOR_BACKEND} model={EMBED_MODEL} "
@@ -139,22 +139,27 @@ def match_frame(frame_bgr):
 
     frame_h, frame_w = frame_bgr.shape[:2]
 
+    # One call: detect + align + embed at the model's correct input size.
+    # Previous two-step approach (extract_faces → represent(skip)) produced wrong
+    # embeddings because extract_faces defaults to VGG-Face's 224x224 target, not
+    # the embedding model's expected size.
     try:
-        faces = DeepFace.extract_faces(
+        results = DeepFace.represent(
             img_path=frame_bgr,
+            model_name=EMBED_MODEL,
             detector_backend=DETECTOR_BACKEND,
             enforce_detection=False,
             align=True,
         )
     except Exception as e:
-        print(f"[FACE] detection error: {e}")
+        print(f"[FACE] represent failed: {e}")
         return []
 
     matches = []
     now = time.time()
 
-    for face_info in faces:
-        fa = face_info.get("facial_area") or {}
+    for res in results:
+        fa = res.get("facial_area") or {}
         x = int(fa.get("x", 0))
         y = int(fa.get("y", 0))
         w = int(fa.get("w", 0))
@@ -168,22 +173,7 @@ def match_frame(frame_bgr):
             print(f"[FACE] skipping small face ({w}x{h} < {MIN_FACE_SIZE}px)")
             continue
 
-        face_img = face_info.get("face")
-        if face_img is None or face_img.size == 0:
-            continue
-
-        try:
-            rep = DeepFace.represent(
-                img_path=face_img if face_img.dtype == np.uint8 else (face_img * 255).astype(np.uint8),
-                model_name=EMBED_MODEL,
-                detector_backend="skip",
-                enforce_detection=False,
-                align=False,
-            )
-            embedding = np.array(rep[0]["embedding"], dtype=np.float32)
-        except Exception as e:
-            print(f"[FACE] embedding failed at ({x},{y},{w},{h}): {e}")
-            continue
+        embedding = np.array(res["embedding"], dtype=np.float32)
 
         print(f"[FACE] face at ({x},{y},{w},{h}) vs {len(_offender_cache)} offenders:")
         best = None

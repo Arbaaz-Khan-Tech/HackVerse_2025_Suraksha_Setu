@@ -33,7 +33,10 @@
 {% endblock %}
 
 {% block content %}
-<h2 class="text-2xl font-bold mb-4 dark:text-white">Crime Mapping &amp; Analysis</h2>
+<header class="mb-6">
+    <h1 class="page-title">Crime Heatmap</h1>
+    <p class="page-subtitle">Map of reported crimes. Click anywhere on the map to report a new location.</p>
+</header>
 
 <!-- Status Bar -->
 <div class="bg-blue-100 dark:bg-blue-900 p-4 rounded-lg mb-4">
@@ -226,7 +229,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('crimeForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!selectedLocation) {
-            alert('Please click on the map to select a location first');
+            showToast('warning', 'Click on the map to select a location first.');
             return;
         }
         const location = selectedLocation.getLatLng();
@@ -251,11 +254,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('crimeForm').reset();
                 selectedLocation = null;
                 updateCrimeCount();
-                alert('Crime location saved successfully!');
+                showToast('success', 'Crime location saved.');
             }
         } catch (error) {
             console.error('Error saving crime data:', error);
-            alert('Error saving crime data. Please try again.');
+            showToast('danger', 'Could not save crime data. Please try again.');
         }
     });
 
@@ -308,9 +311,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 addToRecentReports(m);
             });
             updateCrimeCount();
+            showToast('success', `Refreshed ${data.length} crime location(s).`);
         } catch (error) {
             console.error('Error refreshing markers:', error);
-            alert('Error refreshing crime data. Please try again.');
+            showToast('danger', 'Could not refresh crime data.');
         }
     });
 

@@ -3,7 +3,10 @@
 {% block title %}Incident Report - Police{% endblock %}
 
 {% block content %}
-<h2 class="text-2xl font-bold mb-4 dark:text-white">Incident Report</h2>
+<header class="mb-6">
+    <h1 class="page-title">Incident Report</h1>
+    <p class="page-subtitle">File a detailed incident report with evidence attachments.</p>
+</header>
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
                 <form id="incidentReportForm" action="#" method="POST" enctype="multipart/form-data">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -136,12 +139,12 @@
                         // Reset the form
                         incidentReportForm.reset();
                     } else if (data.error) {
-                        alert('Error: ' + data.error);
+                        showToast('danger', 'Error: ' + data.error);
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('An error occurred while submitting the form.');
+                    showToast('danger', 'An error occurred while submitting the form.');
                 });
         });
 

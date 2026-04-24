@@ -3,13 +3,17 @@
 {% block title %}Incident Alerts - Police{% endblock %}
 
 {% block content %}
-<h2 class="text-2xl font-bold mb-6 dark:text-white">Incident Alerts</h2>
+<header class="mb-6">
+    <h1 class="page-title">Incident Alerts</h1>
+    <p class="page-subtitle">Live feed of citizen-reported incidents. Update status to track progress.</p>
+</header>
 
         <!-- Fallback Message -->
         {% if incidents|length == 0 %}
-        <div class="text-center text-gray-600 dark:text-gray-400 py-10">
-            <i class="fas fa-info-circle text-4xl mb-4"></i>
-            <p class="text-xl font-medium">No details available.</p>
+        <div class="empty-state">
+            <div class="empty-state-icon"><i class="fas fa-bell-slash"></i></div>
+            <p class="empty-state-title">No incidents right now</p>
+            <p class="empty-state-desc">New alerts will appear here as citizens submit reports.</p>
         </div>
         {% else %}
 

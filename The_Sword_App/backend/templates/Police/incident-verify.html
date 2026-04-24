@@ -3,13 +3,17 @@
 {% block title %}Verify Reports - Police{% endblock %}
 
 {% block content %}
-<h2 class="text-2xl font-bold mb-6 dark:text-white">Incident Verify</h2>
-            
-              <!-- Fallback Message -->
+<header class="mb-6">
+    <h1 class="page-title">Verify Reports</h1>
+    <p class="page-subtitle">Review and validate incidents submitted by citizens before marking them resolved.</p>
+</header>
+
+        <!-- Fallback Message -->
         {% if incidents|length == 0 %}
-        <div class="text-center text-gray-600 dark:text-gray-400 py-10">
-            <i class="fas fa-info-circle text-4xl mb-4"></i>
-            <p class="text-xl font-medium">No details available to verify the incidents.</p>
+        <div class="empty-state">
+            <div class="empty-state-icon"><i class="fas fa-circle-check"></i></div>
+            <p class="empty-state-title">Nothing to verify</p>
+            <p class="empty-state-desc">All submitted reports have been processed.</p>
         </div>
         {% else %}
 
