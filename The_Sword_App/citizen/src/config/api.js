@@ -1,4 +1,4 @@
-// Replace 10.0.2.2 with your computer's actual IP address
-export const API_BASE_URL = 'http://10.243.176.80:5000'; // Use the IP shown in Flask server console
-export const WS_URL = 'ws://10.243.176.80:5000/socket.io';
-// or 'http://localhost:5000' for iOS simulator
+// Values come from .env (EXPO_PUBLIC_* vars are inlined by Expo at build time).
+// Set EXPO_PUBLIC_API_BASE_URL to the IP shown in the Flask server console.
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+export const WS_URL = process.env.EXPO_PUBLIC_WS_URL;

@@ -9,7 +9,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Layout from '../components/Layout';
 import MapViewDirections from 'react-native-maps-directions';
 
-const GOOGLE_MAPS_API_KEY = 'AIzaSyBhMlK_4BYmyS4Lo7xJmK-ofgGFWJATbb0'; // Replace with your actual API key
+const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 const SafeWalk = () => {
     const { isDarkMode } = useDarkMode();

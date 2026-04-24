@@ -26,6 +26,9 @@ from flask_cors import CORS
 import socket
 import base64
 import face_recognition_utils as face_utils
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Add this function at the top level
 def serialize_datetime(obj):
@@ -72,8 +75,10 @@ app.logger.setLevel(logging.DEBUG)
 violence_model = YOLO("viodec_mk1.pt")
 arms_model = YOLO("arms_detect.pt")
 
-violence_classes = ["Violence ","knife","guns","NonViolence"]    
+violence_classes = ["Violence ","knife","guns","NonViolence"]
 arms_classes = ["Gun", "Knife", "Pistol", "Handgun", "Rifle"]
+
+WEAPON_CONF_THRESHOLD = float(os.environ.get("WEAPON_CONF_THRESHOLD", "0.5"))
 
 # Global variable to store detected objects
 detected_objects = []
@@ -86,18 +91,22 @@ def detect_objects(frame):
 
     detected_objects.clear()  # Clear previous detections
 
-    # Check for violence
+    # Check for violence (confidence-gated)
     for result in violence_results:
         for box in result.boxes:
+            if float(box.conf) < WEAPON_CONF_THRESHOLD:
+                continue
             class_id = int(box.cls)
-            if violence_classes[class_id] == "Violence":
+            if violence_classes[class_id].strip() == "Violence":
                 detected_objects.append("Violence")
 
-    # Check for arms
+    # Check for arms (confidence-gated)
     for result in arms_results:
         for box in result.boxes:
+            if float(box.conf) < WEAPON_CONF_THRESHOLD:
+                continue
             class_id = int(box.cls)
-            if arms_classes[class_id] in arms_classes:
+            if 0 <= class_id < len(arms_classes):
                 detected_objects.append(arms_classes[class_id])
 
     # Face recognition against offender DB (runs every FRAME_INTERVAL frames)
@@ -146,7 +155,9 @@ def detections():
     return jsonify({"detected_objects": detected_objects})
 
 # Create a connection to MongoDB
-mongo_con = "mongodb+srv://mrsachinchaurasiya_db_user:Ci8TLSvjfySoMrLk@cluster0.7kjezso.mongodb.net/"
+mongo_con = os.environ.get("MONGO_URI")
+if not mongo_con:
+    raise RuntimeError("MONGO_URI is not set. Copy .env.example to .env and fill it in.")
 client = MongoClient(mongo_con)
 db = client["SurakshaSetu"]
 
