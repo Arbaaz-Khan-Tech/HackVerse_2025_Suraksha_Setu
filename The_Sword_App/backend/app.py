@@ -24,6 +24,8 @@ import json
 from flask_cors import CORS
 
 import socket
+import base64
+import face_recognition_utils as face_utils
 
 # Add this function at the top level
 def serialize_datetime(obj):
@@ -64,8 +66,7 @@ socketio = SocketIO(
     manage_session=False  # Add this
 )
 
-# Set the logging level to ERROR
-app.logger.setLevel(logging.ERROR)
+app.logger.setLevel(logging.DEBUG)
 
 # Load models
 violence_model = YOLO("viodec_mk1.pt")
@@ -98,6 +99,17 @@ def detect_objects(frame):
             class_id = int(box.cls)
             if arms_classes[class_id] in arms_classes:
                 detected_objects.append(arms_classes[class_id])
+
+    # Face recognition against offender DB (runs every FRAME_INTERVAL frames)
+    for m in face_utils.match_frame(frame):
+        detected_objects.append(f"OFFENDER:{m['name']}")
+        socketio.emit("face_match_alert", {
+            "offender_id": m["offender_id"],
+            "name": m["name"],
+            "similarity": m["similarity"],
+            "bbox": m["bbox"],
+            "timestamp": datetime.datetime.now().isoformat(),
+        })
 
     return detected_objects
 
@@ -134,7 +146,7 @@ def detections():
     return jsonify({"detected_objects": detected_objects})
 
 # Create a connection to MongoDB
-mongo_con = "mongodb://localhost:27017"
+mongo_con = "mongodb+srv://mrsachinchaurasiya_db_user:Ci8TLSvjfySoMrLk@cluster0.7kjezso.mongodb.net/"
 client = MongoClient(mongo_con)
 db = client["SurakshaSetu"]
 
@@ -143,6 +155,12 @@ incidents_collection = db["Incidents"]  # For police-submitted reports
 Alert_Collection = db["Alerts"]
 markers_collection = db["Markers"]
 heatmap_collection = db["Heatmap"]
+offenders_collection = db["offenders"]
+sightings_collection = db["offender_sightings"]
+
+OFFENDER_UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "static", "uploads", "offenders")
+os.makedirs(OFFENDER_UPLOAD_DIR, exist_ok=True)
+face_utils.refresh_cache(offenders_collection)
 
 # Citizen API Routes (React Native)
 @app.route('/api/citizen/rewards', methods=['GET'])
@@ -578,7 +596,208 @@ def police_login():
 
 @app.route('/police/offender-database')
 def police_offender_database():
-    return render_template("Police/offender-database.html")
+    return render_template(
+        "Police/offender-database.html",
+        threshold=face_utils.MATCH_THRESHOLD,
+    )
+
+
+@app.route('/api/offenders', methods=['GET'])
+def api_offenders_list():
+    docs = list(offenders_collection.find({}, {"embedding": 0}).sort("created_at", -1))
+    for d in docs:
+        d["_id"] = str(d["_id"])
+        if "created_at" in d and isinstance(d["created_at"], datetime.datetime):
+            d["created_at"] = d["created_at"].isoformat()
+        d["lookout_active"] = bool(d.get("lookout_active", True))
+    return jsonify(docs)
+
+
+@app.route('/api/offenders', methods=['POST'])
+def api_offenders_create():
+    name = (request.form.get("name") or "").strip()
+    aadhar = (request.form.get("aadhar_number") or "").strip() or None
+    source = request.form.get("photo_source") or "upload"
+    if not name:
+        return jsonify({"error": "name is required"}), 400
+
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    ext = ".jpg"
+    saved_name = f"offender_{timestamp}_{uuid.uuid4().hex[:6]}{ext}"
+    saved_path = os.path.join(OFFENDER_UPLOAD_DIR, saved_name)
+
+    file = request.files.get("photo")
+    data_url = request.form.get("webcam_data_url")
+    if file and file.filename:
+        file.save(saved_path)
+    elif data_url:
+        try:
+            _, b64 = data_url.split(",", 1)
+            with open(saved_path, "wb") as f:
+                f.write(base64.b64decode(b64))
+        except Exception as e:
+            return jsonify({"error": f"invalid webcam data: {e}"}), 400
+    else:
+        return jsonify({"error": "photo file or webcam_data_url required"}), 400
+
+    if source == "aadhar_card":
+        crop, err = face_utils.detect_face_crop(saved_path)
+        if err:
+            os.remove(saved_path)
+            return jsonify({"error": f"aadhar card: {err}"}), 400
+        cv2.imwrite(saved_path, crop)
+
+    embedding, err = face_utils.generate_embedding(saved_path)
+    if embedding is None:
+        os.remove(saved_path)
+        return jsonify({"error": f"embedding failed: {err}"}), 400
+
+    doc = {
+        "name": name,
+        "aadhar_number": aadhar,
+        "photo_path": f"/static/uploads/offenders/{saved_name}",
+        "photo_source": source,
+        "embedding": embedding,
+        "lookout_active": True,
+        "created_at": datetime.datetime.now(),
+    }
+    result = offenders_collection.insert_one(doc)
+    face_utils.refresh_cache(offenders_collection)
+
+    return jsonify({
+        "_id": str(result.inserted_id),
+        "name": name,
+        "aadhar_number": aadhar,
+        "photo_path": doc["photo_path"],
+        "photo_source": source,
+    }), 201
+
+
+@app.route('/api/aadhaar/lookup', methods=['POST'])
+def api_aadhaar_lookup():
+    """Simulated Aadhaar lookup across 'linked sources'. Actually queries the
+    local offenders collection; the multi-source animation is client-side."""
+    payload = request.get_json(silent=True) or {}
+    aadhar = (payload.get("aadhaar_number") or "").strip()
+    if not aadhar or not aadhar.isdigit() or len(aadhar) != 12:
+        return jsonify({"error": "aadhaar_number must be 12 digits"}), 400
+
+    doc = offenders_collection.find_one(
+        {"aadhar_number": aadhar},
+        {"embedding": 0},
+    )
+    if not doc:
+        return jsonify({"found": False, "aadhaar_number": aadhar}), 200
+
+    source_label = {
+        "aadhar_card": "UIDAI Aadhaar Photo Vault",
+        "webcam": "Police field capture",
+        "upload": "Uploaded evidence photo",
+    }.get(doc.get("photo_source"), doc.get("photo_source"))
+
+    return jsonify({
+        "found": True,
+        "aadhaar_number": aadhar,
+        "offender": {
+            "_id": str(doc["_id"]),
+            "name": doc.get("name"),
+            "photo_path": doc.get("photo_path"),
+            "photo_origin": source_label,
+            "lookout_active": bool(doc.get("lookout_active", True)),
+            "created_at": (
+                doc["created_at"].isoformat()
+                if isinstance(doc.get("created_at"), datetime.datetime)
+                else None
+            ),
+        },
+    })
+
+
+@app.route('/api/offenders/<offender_id>/lookout', methods=['POST'])
+def api_offenders_lookout(offender_id):
+    try:
+        oid = ObjectId(offender_id)
+    except Exception:
+        return jsonify({"error": "invalid id"}), 400
+    payload = request.get_json(silent=True) or {}
+    active = bool(payload.get("active", True))
+    result = offenders_collection.update_one(
+        {"_id": oid},
+        {"$set": {"lookout_active": active}},
+    )
+    if result.matched_count == 0:
+        return jsonify({"error": "not found"}), 404
+    face_utils.refresh_cache(offenders_collection)
+    doc = offenders_collection.find_one({"_id": oid}, {"name": 1})
+    socketio.emit("lookout_notice_issued" if active else "lookout_notice_cancelled", {
+        "offender_id": offender_id,
+        "name": doc.get("name") if doc else None,
+        "timestamp": datetime.datetime.now().isoformat(),
+    })
+    return jsonify({"_id": offender_id, "lookout_active": active})
+
+
+@app.route('/api/offender-sightings', methods=['POST'])
+def api_offender_sightings_create():
+    """Silently record a sighting. Called by the CCTV page on every face match."""
+    payload = request.get_json(silent=True) or {}
+    doc = {
+        "offender_id": payload.get("offender_id"),
+        "name": payload.get("name"),
+        "similarity": payload.get("similarity"),
+        "camera_id": payload.get("camera_id") or "camera-1",
+        "lat": payload.get("lat"),
+        "lng": payload.get("lng"),
+        "accuracy": payload.get("accuracy"),
+        "timestamp": datetime.datetime.now(),
+    }
+    sightings_collection.insert_one(doc)
+    return jsonify({"status": "recorded"}), 201
+
+
+@app.route('/api/offender-sightings', methods=['GET'])
+def api_offender_sightings_list():
+    """Return recent sightings for the map page (newest first, capped at 500)."""
+    cursor = sightings_collection.find({}).sort("timestamp", -1).limit(500)
+    out = []
+    for d in cursor:
+        out.append({
+            "_id": str(d["_id"]),
+            "offender_id": d.get("offender_id"),
+            "name": d.get("name"),
+            "similarity": d.get("similarity"),
+            "camera_id": d.get("camera_id"),
+            "lat": d.get("lat"),
+            "lng": d.get("lng"),
+            "timestamp": d["timestamp"].isoformat() if isinstance(d.get("timestamp"), datetime.datetime) else None,
+        })
+    return jsonify(out)
+
+
+@app.route('/police/sightings-map')
+def police_sightings_map():
+    return render_template("Police/sightings-map.html")
+
+
+@app.route('/api/offenders/<offender_id>', methods=['DELETE'])
+def api_offenders_delete(offender_id):
+    try:
+        oid = ObjectId(offender_id)
+    except Exception:
+        return jsonify({"error": "invalid id"}), 400
+    doc = offenders_collection.find_one({"_id": oid})
+    if not doc:
+        return jsonify({"error": "not found"}), 404
+    if doc.get("photo_path"):
+        local = os.path.join(os.path.dirname(__file__), doc["photo_path"].lstrip("/"))
+        if os.path.exists(local):
+            try:
+                os.remove(local)
+            except OSError:
+                pass
+    offenders_collection.delete_one({"_id": oid})
+    face_utils.refresh_cache(offenders_collection)
+    return jsonify({"status": "deleted", "_id": offender_id})
 
 @app.route('/police/police-analytics')
 def police_analytics():
@@ -767,7 +986,7 @@ if __name__ == "__main__":
     print("Starting Socket.IO server...")
     socketio.run(
         app,
-        host=local_ip,  # Use the actual IP instead of 0.0.0.0
+        host="0.0.0.0",  # Listen on all interfaces (loopback + LAN)
         port=5000,
         debug=True,
         allow_unsafe_werkzeug=True,  # Add this for development

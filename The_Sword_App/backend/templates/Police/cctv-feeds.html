@@ -15,7 +15,7 @@ Home - Citizen Safety App
                         <img src="/video_feed"  alt="CCTV Feed 1" class="w-full h-48 object-cover rounded-lg cursor-pointer feed-image" data-feed="1">
                         <span class="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs">Normal</span>
                     </div>
-                     <h3 class="text-lg font-semibold mt-2 dark:text-white">Camera #1 - Main Street</h3>
+                     <h3 class="text-lg font-semibold mt-2 dark:text-white">Camera 1</h3>
                     <p class="text-gray-600 dark:text-gray-300 text-sm">Real-time status updates below:</p>
                     <div id="notifications" style="color: red; font-weight: bold; margin-top: 20px;"></div>
 
@@ -92,6 +92,65 @@ Home - Citizen Safety App
                 this.classList.remove('active');
             });
         });
+    </script>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+        // Face-match alerts + silent geolocation sighting capture for Camera 1
+        (function () {
+            const notifBox = document.getElementById('notifications');
+            const CAMERA_ID = 'camera-1';
+
+            // Ask for geolocation once on load; cache it and keep refreshing in the background.
+            let lastPosition = null;
+            function refreshPosition() {
+                if (!navigator.geolocation) return;
+                navigator.geolocation.getCurrentPosition(
+                    p => { lastPosition = { lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy }; },
+                    () => { /* silent fail */ },
+                    { enableHighAccuracy: true, maximumAge: 30000, timeout: 10000 }
+                );
+            }
+            refreshPosition();
+            setInterval(refreshPosition, 60000);
+
+            const socket = io();
+            socket.on('face_match_alert', (data) => {
+                if (notifBox) {
+                    const line = document.createElement('div');
+                    line.style.background = '#b91c1c';
+                    line.style.color = '#fff';
+                    line.style.padding = '8px 12px';
+                    line.style.marginTop = '6px';
+                    line.style.borderRadius = '6px';
+                    line.style.fontWeight = '700';
+                    line.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2"></i>
+                        OFFENDER MATCH: ${data.name}
+                        <span style="font-weight:400;font-size:0.85em;margin-left:6px">
+                          (similarity ${data.similarity})
+                        </span>`;
+                    notifBox.prepend(line);
+                    setTimeout(() => line.remove(), 15000);
+                }
+
+                // Silently persist a sighting with location. Nothing shown in UI.
+                try {
+                    fetch('/api/offender-sightings', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            offender_id: data.offender_id,
+                            name: data.name,
+                            similarity: data.similarity,
+                            camera_id: CAMERA_ID,
+                            lat: lastPosition ? lastPosition.lat : null,
+                            lng: lastPosition ? lastPosition.lng : null,
+                            accuracy: lastPosition ? lastPosition.accuracy : null,
+                        })
+                    });
+                } catch (_) { /* silent */ }
+            });
+        })();
     </script>
 
     <!-- <script>

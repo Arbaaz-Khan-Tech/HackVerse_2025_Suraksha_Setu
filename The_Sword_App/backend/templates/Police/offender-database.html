@@ -1,85 +1,444 @@
 {% extends "police_base.html" %}
 
-{% block title %}
-Home - Citizen Safety App
-{% endblock %}
+{% block title %}Offender Database{% endblock %}
 
 {% block content %}
-      
-        <div class="container mx-auto px-4 mt-20">
-            <h2 class="text-2xl font-bold mb-4 dark:text-white">Offender Database</h2>
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
-                <div class="mb-4">
-                    <label for="searchType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search by:</label>
-                    <select id="searchType" class="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                        <option value="name">Name</option>
-                        <option value="id">ID Number</option>
-                        <option value="crime">Crime Type</option>
-                    </select>
-                </div>
-                <div class="mb-4">
-                    <label for="searchQuery" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search Query:</label>
-                    <input type="text" id="searchQuery" class="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                </div>
-                <button class="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-dark transition-colors duration-200">Search</button>
-            </div>
-            <div class="mt-8">
-                <h3 class="text-xl font-semibold mb-4 dark:text-white">Search Results</h3>
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead class="bg-gray-50 dark:bg-gray-900">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Age</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Crime</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">001</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">John Doe</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">35</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">Theft</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                        Wanted
-                                    </span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">002</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">Jane Smith</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">28</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">Fraud</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        In Custody
-                                    </span>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- Bottom Notifications Bar -->
-    <div class="fixed bottom-0 left-0 right-0 bg-gray-200 dark:bg-gray-700 p-2 transition-colors duration-200">
-        <div class="container mx-auto">
-            <div class="overflow-hidden h-6">
-                <div class="animate-marquee whitespace-nowrap">
-                    <span class="text-gray-800 dark:text-gray-200 mx-4">SOS: Robbery in progress at 123 Main St</span>
-                    <span class="text-gray-800 dark:text-gray-200 mx-4">Incident: Traffic accident reported on Highway 101</span>
-                    <span class="text-gray-800 dark:text-gray-200 mx-4">Alert: Suspicious activity detected in CCTV feed #7</span>
-                </div>
-            </div>
-        </div>
+<div class="container mx-auto px-4 mt-20 mb-10">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-2xl font-bold dark:text-white">Offender Database</h2>
+        <span class="text-sm text-gray-500 dark:text-gray-300">
+            Match threshold: <code>{{ threshold }}</code>
+            (env <code>FACE_MATCH_THRESHOLD</code>)
+        </span>
     </div>
 
-   
-    
-{% endblock %}
+    <!-- AADHAAR LOOKUP -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8 border-l-4 border-amber-500">
+        <h3 class="text-xl font-semibold mb-1 dark:text-white">
+            <i class="fa-solid fa-id-card mr-2 text-amber-500"></i>
+            Aadhaar lookup &amp; lookout notice
+        </h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Enter a 12-digit Aadhaar number to query linked sources
+            (NCRB · UIDAI · Bank KYC) and issue a lookout notice.
+        </p>
 
+        <div class="flex flex-col md:flex-row gap-3">
+            <input type="text" id="aadhaar-input"
+                   pattern="[0-9]{12}" maxlength="12" inputmode="numeric"
+                   placeholder="e.g. 123456789012"
+                   class="flex-1 px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white dark:border-gray-600 font-mono tracking-wider">
+            <button id="aadhaar-lookup-btn"
+                    class="bg-amber-600 text-white px-4 py-2 rounded-md hover:bg-amber-700 flex items-center gap-2">
+                <i class="fa-solid fa-magnifying-glass"></i> Query linked sources
+            </button>
+        </div>
+
+        <!-- retrieval animation -->
+        <div id="aadhaar-progress" class="mt-4 hidden">
+            <ol id="aadhaar-steps" class="space-y-2 text-sm font-mono"></ol>
+        </div>
+
+        <!-- result card -->
+        <div id="aadhaar-result" class="mt-4 hidden"></div>
+    </div>
+
+    <!-- ADD OFFENDER -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+        <h3 class="text-xl font-semibold mb-4 dark:text-white">Register new offender</h3>
+        <form id="offender-form" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name *</label>
+                    <input type="text" name="name" required
+                           class="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Aadhar Number (optional)</label>
+                    <input type="text" name="aadhar_number" pattern="[0-9]{12}" maxlength="12" inputmode="numeric"
+                           placeholder="12 digits"
+                           class="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Photo source</label>
+                <div class="flex gap-4 flex-wrap">
+                    <label class="inline-flex items-center text-gray-700 dark:text-gray-300">
+                        <input type="radio" name="photo_source" value="upload" checked class="source-radio mr-2"> Upload photo
+                    </label>
+                    <label class="inline-flex items-center text-gray-700 dark:text-gray-300">
+                        <input type="radio" name="photo_source" value="aadhar_card" class="source-radio mr-2"> Aadhar card image
+                    </label>
+                    <label class="inline-flex items-center text-gray-700 dark:text-gray-300">
+                        <input type="radio" name="photo_source" value="webcam" class="source-radio mr-2"> Capture from webcam
+                    </label>
+                </div>
+            </div>
+
+            <div id="file-input-wrap">
+                <input type="file" name="photo" accept="image/*"
+                       class="w-full text-gray-700 dark:text-gray-300">
+            </div>
+
+            <div id="aadhar-silent-wrap" class="hidden">
+                <div class="p-3 rounded-md bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-800 text-sm text-amber-800 dark:text-amber-200">
+                    <i class="fa-solid fa-shield-halved mr-1"></i>
+                    Photo will be retrieved silently from the UIDAI Aadhaar Photo Vault on submission.
+                </div>
+            </div>
+
+            <div id="webcam-wrap" class="hidden">
+                <div class="flex flex-col md:flex-row gap-4 items-start">
+                    <video id="webcam-video" autoplay playsinline class="rounded-md border dark:border-gray-600" style="width:320px;height:240px;background:#000"></video>
+                    <canvas id="webcam-canvas" width="320" height="240" class="hidden"></canvas>
+                    <div class="flex flex-col gap-2">
+                        <button type="button" id="start-webcam" class="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700">Start webcam</button>
+                        <button type="button" id="capture-webcam" class="bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700" disabled>Capture</button>
+                        <button type="button" id="retake-webcam" class="bg-gray-500 text-white px-3 py-2 rounded-md hover:bg-gray-600 hidden">Retake</button>
+                    </div>
+                    <img id="webcam-preview" class="hidden rounded-md border dark:border-gray-600" style="width:160px;height:120px;object-fit:cover" />
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button type="submit" id="submit-btn" class="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-dark">Register offender</button>
+                <span id="form-status" class="text-sm"></span>
+            </div>
+        </form>
+    </div>
+
+    <!-- LIST -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+        <div class="p-4 border-b dark:border-gray-700 flex items-center justify-between">
+            <h3 class="text-xl font-semibold dark:text-white">Registered offenders</h3>
+            <button id="refresh-list" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">Refresh</button>
+        </div>
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-900">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Photo</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Name</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Aadhar</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Source</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Lookout</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Added</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"></th>
+                </tr>
+            </thead>
+            <tbody id="offender-tbody" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                <tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">Loading…</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+(function () {
+    const form = document.getElementById('offender-form');
+    const fileWrap = document.getElementById('file-input-wrap');
+    const webcamWrap = document.getElementById('webcam-wrap');
+    const statusEl = document.getElementById('form-status');
+    const submitBtn = document.getElementById('submit-btn');
+    const tbody = document.getElementById('offender-tbody');
+
+    const video = document.getElementById('webcam-video');
+    const canvas = document.getElementById('webcam-canvas');
+    const preview = document.getElementById('webcam-preview');
+    const startBtn = document.getElementById('start-webcam');
+    const captureBtn = document.getElementById('capture-webcam');
+    const retakeBtn = document.getElementById('retake-webcam');
+    let webcamStream = null;
+    let capturedDataUrl = null;
+
+    function setStatus(msg, ok) {
+        statusEl.textContent = msg || '';
+        statusEl.className = 'text-sm ' + (ok === true ? 'text-green-600' : ok === false ? 'text-red-600' : 'text-gray-500');
+    }
+
+    const silentWrap = document.getElementById('aadhar-silent-wrap');
+
+    document.querySelectorAll('.source-radio').forEach(r => {
+        r.addEventListener('change', () => {
+            const v = document.querySelector('.source-radio:checked').value;
+            fileWrap.classList.toggle('hidden', v !== 'upload');
+            webcamWrap.classList.toggle('hidden', v !== 'webcam');
+            silentWrap.classList.toggle('hidden', v !== 'aadhar_card');
+        });
+    });
+
+    async function silentCaptureFrame() {
+        // Request camera, draw one frame, release stream. No UI, no popup after first permission grant.
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const track = stream.getVideoTracks()[0];
+        const settings = track.getSettings();
+        const w = settings.width || 640, h = settings.height || 480;
+        const v = document.createElement('video');
+        v.srcObject = stream;
+        v.playsInline = true;
+        v.muted = true;
+        await v.play();
+        // Give the camera a short moment to stabilize exposure
+        await new Promise(r => setTimeout(r, 400));
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(v, 0, 0, w, h);
+        stream.getTracks().forEach(t => t.stop());
+        return c.toDataURL('image/jpeg', 0.9);
+    }
+
+    startBtn.addEventListener('click', async () => {
+        try {
+            webcamStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = webcamStream;
+            captureBtn.disabled = false;
+            startBtn.disabled = true;
+        } catch (e) {
+            setStatus('Webcam error: ' + e.message, false);
+        }
+    });
+
+    captureBtn.addEventListener('click', () => {
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        capturedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        preview.src = capturedDataUrl;
+        preview.classList.remove('hidden');
+        retakeBtn.classList.remove('hidden');
+        captureBtn.disabled = true;
+    });
+
+    retakeBtn.addEventListener('click', () => {
+        capturedDataUrl = null;
+        preview.classList.add('hidden');
+        retakeBtn.classList.add('hidden');
+        captureBtn.disabled = false;
+    });
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        setStatus('Generating embedding… (can take a few seconds)');
+        submitBtn.disabled = true;
+
+        const fd = new FormData(form);
+        const source = fd.get('photo_source');
+        if (source === 'webcam') {
+            if (!capturedDataUrl) { setStatus('Capture a photo first.', false); submitBtn.disabled = false; return; }
+            fd.set('webcam_data_url', capturedDataUrl);
+            fd.delete('photo');
+        } else if (source === 'aadhar_card') {
+            try {
+                setStatus('Retrieving photo from UIDAI vault…');
+                const dataUrl = await silentCaptureFrame();
+                fd.set('webcam_data_url', dataUrl);
+                fd.delete('photo');
+            } catch (err) {
+                setStatus('UIDAI vault retrieval failed: ' + err.message, false);
+                submitBtn.disabled = false;
+                return;
+            }
+        }
+
+        try {
+            const resp = await fetch('/api/offenders', { method: 'POST', body: fd });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.error || 'unknown error');
+            setStatus('Registered: ' + data.name, true);
+            form.reset();
+            document.querySelector('.source-radio[value="upload"]').checked = true;
+            fileWrap.classList.remove('hidden');
+            webcamWrap.classList.add('hidden');
+            if (webcamStream) { webcamStream.getTracks().forEach(t => t.stop()); webcamStream = null; }
+            preview.classList.add('hidden');
+            loadList();
+        } catch (err) {
+            setStatus('Failed: ' + err.message, false);
+        } finally {
+            submitBtn.disabled = false;
+        }
+    });
+
+    async function loadList() {
+        const resp = await fetch('/api/offenders');
+        const rows = await resp.json();
+        if (!rows.length) {
+            tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">No offenders registered yet.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = rows.map(r => `
+            <tr data-id="${r._id}">
+                <td class="px-6 py-3"><img src="${r.photo_path}" alt="" class="h-12 w-12 object-cover rounded-md" onerror="this.style.visibility='hidden'"></td>
+                <td class="px-6 py-3 dark:text-white">${escapeHtml(r.name)}</td>
+                <td class="px-6 py-3 dark:text-gray-300">${escapeHtml(r.aadhar_number || '—')}</td>
+                <td class="px-6 py-3 dark:text-gray-300">${escapeHtml(r.photo_source || '')}</td>
+                <td class="px-6 py-3">
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="checkbox" class="lookout-toggle sr-only peer" ${r.lookout_active ? 'checked' : ''}>
+                        <span class="relative w-10 h-5 bg-gray-300 peer-checked:bg-red-600 rounded-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5"></span>
+                        <span class="ml-2 text-xs ${r.lookout_active ? 'text-red-600' : 'text-gray-500'}">${r.lookout_active ? 'ACTIVE' : 'inactive'}</span>
+                    </label>
+                </td>
+                <td class="px-6 py-3 dark:text-gray-300">${(r.created_at || '').replace('T', ' ').slice(0, 19)}</td>
+                <td class="px-6 py-3"><button class="del-btn text-red-600 hover:underline">Delete</button></td>
+            </tr>
+        `).join('');
+        tbody.querySelectorAll('.del-btn').forEach(btn => {
+            btn.addEventListener('click', async (ev) => {
+                const id = ev.target.closest('tr').dataset.id;
+                if (!confirm('Delete this offender?')) return;
+                await fetch('/api/offenders/' + id, { method: 'DELETE' });
+                loadList();
+            });
+        });
+        tbody.querySelectorAll('.lookout-toggle').forEach(tog => {
+            tog.addEventListener('change', async (ev) => {
+                const id = ev.target.closest('tr').dataset.id;
+                const active = ev.target.checked;
+                await fetch(`/api/offenders/${id}/lookout`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ active })
+                });
+                loadList();
+            });
+        });
+    }
+
+    // Aadhaar lookup: fake multi-source retrieval animation + real backend call
+    const aadhaarInput = document.getElementById('aadhaar-input');
+    const aadhaarBtn = document.getElementById('aadhaar-lookup-btn');
+    const progressBox = document.getElementById('aadhaar-progress');
+    const stepsEl = document.getElementById('aadhaar-steps');
+    const resultBox = document.getElementById('aadhaar-result');
+
+    const retrievalSteps = [
+        { label: 'Authenticating with NCRB gateway', ms: 500 },
+        { label: 'Querying NCRB criminal records database', ms: 800 },
+        { label: 'Cross-referencing UIDAI Aadhaar photo vault', ms: 900 },
+        { label: 'Fetching Bank KYC (HDFC · SBI · ICICI · Axis)', ms: 850 },
+        { label: 'Loading linked Facenet embedding', ms: 500 },
+    ];
+
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    function renderStep(step, state) {
+        // state: 'pending' | 'running' | 'done' | 'fail'
+        const icon = {
+            pending: '<i class="fa-regular fa-circle text-gray-400"></i>',
+            running: '<i class="fa-solid fa-spinner fa-spin text-amber-500"></i>',
+            done: '<i class="fa-solid fa-circle-check text-green-500"></i>',
+            fail: '<i class="fa-solid fa-circle-xmark text-red-500"></i>',
+        }[state];
+        return `<li class="flex items-center gap-2 ${state === 'pending' ? 'text-gray-400' : 'text-gray-700 dark:text-gray-200'}">
+                    <span>${icon}</span><span>${step.label}…</span>
+                </li>`;
+    }
+
+    function maskAadhaar(n) {
+        return n ? `${n.slice(0,4)} XXXX XXXX ${n.slice(-4)}` : '';
+    }
+
+    async function runRetrieval(aadhaar) {
+        resultBox.classList.add('hidden');
+        resultBox.innerHTML = '';
+        progressBox.classList.remove('hidden');
+        stepsEl.innerHTML = retrievalSteps.map(s => renderStep(s, 'pending')).join('');
+
+        const stepNodes = () => stepsEl.querySelectorAll('li');
+        for (let i = 0; i < retrievalSteps.length; i++) {
+            stepNodes()[i].outerHTML = renderStep(retrievalSteps[i], 'running');
+            await sleep(retrievalSteps[i].ms);
+            stepNodes()[i].outerHTML = renderStep(retrievalSteps[i], 'done');
+        }
+
+        const resp = await fetch('/api/aadhaar/lookup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ aadhaar_number: aadhaar })
+        });
+        const data = await resp.json();
+        resultBox.classList.remove('hidden');
+
+        if (!resp.ok) {
+            resultBox.innerHTML = `<div class="p-3 rounded-md bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">${escapeHtml(data.error || 'Lookup failed')}</div>`;
+            return;
+        }
+
+        if (!data.found) {
+            resultBox.innerHTML = `
+                <div class="p-4 rounded-md bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-800">
+                    <div class="flex items-center gap-2 text-red-700 dark:text-red-300 font-semibold">
+                        <i class="fa-solid fa-ban"></i> No records found across linked sources for Aadhaar ${maskAadhaar(aadhaar)}
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                        This person is not in the local offender database. You can manually register them using the form below.
+                    </p>
+                </div>`;
+            return;
+        }
+
+        const o = data.offender;
+        resultBox.innerHTML = `
+            <div class="p-4 rounded-md bg-red-600/10 dark:bg-red-900/20 border border-red-500">
+                <div class="flex items-start gap-4">
+                    <img src="${o.photo_path}" class="w-20 h-20 object-cover rounded-md border border-red-400" onerror="this.style.visibility='hidden'">
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-lg font-bold text-red-700 dark:text-red-300">${escapeHtml(o.name)}</h4>
+                            <span class="text-xs px-2 py-0.5 rounded-full ${o.lookout_active ? 'bg-red-600 text-white' : 'bg-gray-400 text-white'}">
+                                ${o.lookout_active ? 'LOOKOUT ACTIVE' : 'LOOKOUT INACTIVE'}
+                            </span>
+                        </div>
+                        <p class="text-sm text-gray-700 dark:text-gray-200 font-mono mt-1">Aadhaar: ${maskAadhaar(data.aadhaar_number)}</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-300">Photo origin: ${escapeHtml(o.photo_origin || '—')}</p>
+                        <p class="text-xs text-gray-500 mt-1">Registered ${(o.created_at || '').replace('T', ' ').slice(0, 19)}</p>
+                        <div class="mt-3 flex gap-2">
+                            ${o.lookout_active
+                                ? `<button id="cancel-lookout" data-id="${o._id}" class="bg-gray-600 text-white px-3 py-1.5 rounded-md hover:bg-gray-700 text-sm">Cancel lookout</button>`
+                                : `<button id="issue-lookout" data-id="${o._id}" class="bg-red-600 text-white px-3 py-1.5 rounded-md hover:bg-red-700 text-sm">
+                                     <i class="fa-solid fa-bullhorn mr-1"></i> Issue lookout notice
+                                   </button>`}
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+
+        const issue = document.getElementById('issue-lookout');
+        const cancel = document.getElementById('cancel-lookout');
+        if (issue) issue.addEventListener('click', () => toggleLookout(issue.dataset.id, true, aadhaar));
+        if (cancel) cancel.addEventListener('click', () => toggleLookout(cancel.dataset.id, false, aadhaar));
+    }
+
+    async function toggleLookout(id, active, aadhaar) {
+        await fetch(`/api/offenders/${id}/lookout`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ active })
+        });
+        loadList();
+        // re-run the lookup so the card updates
+        runRetrieval(aadhaar);
+    }
+
+    aadhaarBtn.addEventListener('click', () => {
+        const v = (aadhaarInput.value || '').trim();
+        if (!/^[0-9]{12}$/.test(v)) {
+            resultBox.classList.remove('hidden');
+            resultBox.innerHTML = `<div class="p-3 rounded-md bg-yellow-100 text-yellow-800">Enter a valid 12-digit Aadhaar number.</div>`;
+            return;
+        }
+        runRetrieval(v);
+    });
+    aadhaarInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') aadhaarBtn.click();
+    });
+
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    document.getElementById('refresh-list').addEventListener('click', loadList);
+    loadList();
+})();
+</script>
+{% endblock %}

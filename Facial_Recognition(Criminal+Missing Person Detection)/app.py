@@ -52,11 +52,27 @@ def allowed_file(filename):
 
 def video_processing():
     global current_alert, last_frame
-    cap = cv2.VideoCapture("arbbaaz.mp4")  # Use 0 for webcam or camera URL
-    
+
+    # Source: webcam by default. Override with VIDEO_SOURCE env var
+    # (either an integer camera index like "0" or a path/URL like "arbbaaz.mp4").
+    source = os.environ.get("VIDEO_SOURCE", "0")
+    try:
+        source = int(source)
+    except ValueError:
+        pass
+
+    cap = cv2.VideoCapture(source)
+    if not cap.isOpened():
+        print(f"[ERROR] Could not open video source: {source!r}. "
+              f"Set VIDEO_SOURCE=0 for webcam or VIDEO_SOURCE=/path/to/file.mp4.")
+        return
+
+    print(f"[INFO] Video source opened: {source!r}")
+
     while True:
         success, frame = cap.read()
         if not success:
+            print("[WARN] Failed to read frame, stopping capture thread.")
             break
         else:
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)

@@ -1,0 +1,122 @@
+{% extends "police_base.html" %}
+
+{% block title %}Offender Sightings Map{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<div class="container mx-auto px-4 mt-20 mb-10">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-2xl font-bold dark:text-white">
+            <i class="fa-solid fa-location-crosshairs mr-2 text-red-500"></i>
+            Offender Sightings Map
+        </h2>
+        <div class="flex items-center gap-3">
+            <label class="text-sm text-gray-500 dark:text-gray-300">
+                Filter:
+                <select id="offender-filter" class="ml-1 px-2 py-1 border rounded-md dark:bg-gray-700 dark:text-white dark:border-gray-600 text-sm">
+                    <option value="">All offenders</option>
+                </select>
+            </label>
+            <button id="refresh-map" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                <i class="fa-solid fa-rotate"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+        <div id="sightings-map" style="height: 70vh; width: 100%;"></div>
+    </div>
+
+    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+        Each pin is a face match captured silently by a CCTV camera. Click a pin for details.
+    </p>
+</div>
+
+<script>
+(function () {
+    const map = L.map('sightings-map').setView([20.5937, 78.9629], 5); // India center as fallback
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19,
+    }).addTo(map);
+
+    const markerLayer = L.layerGroup().addTo(map);
+    const filter = document.getElementById('offender-filter');
+    const refresh = document.getElementById('refresh-map');
+
+    // Stable color per offender based on id hash
+    function colorFor(id) {
+        let h = 0;
+        for (let i = 0; i < (id || '').length; i++) h = (h * 31 + id.charCodeAt(i)) & 0xffffff;
+        return `hsl(${h % 360}, 70%, 45%)`;
+    }
+
+    function coloredPin(color) {
+        return L.divIcon({
+            className: 'sighting-pin',
+            html: `<div style="
+                width:18px;height:18px;border-radius:50%;
+                background:${color};
+                border:2px solid #fff;
+                box-shadow:0 0 0 2px ${color}, 0 2px 4px rgba(0,0,0,0.4);
+            "></div>`,
+            iconSize: [18, 18],
+            iconAnchor: [9, 9],
+        });
+    }
+
+    let rawSightings = [];
+
+    function populateFilter() {
+        const names = new Map();
+        rawSightings.forEach(s => { if (s.name) names.set(s.offender_id, s.name); });
+        const current = filter.value;
+        filter.innerHTML = '<option value="">All offenders</option>' +
+            [...names.entries()].map(([id, name]) => `<option value="${id}">${name}</option>`).join('');
+        filter.value = current;
+    }
+
+    function render() {
+        markerLayer.clearLayers();
+        const selected = filter.value;
+        const visible = rawSightings.filter(s => s.lat != null && s.lng != null && (!selected || s.offender_id === selected));
+        if (!visible.length) return;
+        const bounds = [];
+        visible.forEach(s => {
+            const marker = L.marker([s.lat, s.lng], { icon: coloredPin(colorFor(s.offender_id)) });
+            const ts = (s.timestamp || '').replace('T', ' ').slice(0, 19);
+            marker.bindPopup(`
+                <div style="min-width:160px">
+                    <div style="font-weight:700;color:#b91c1c">${escape(s.name || 'Unknown')}</div>
+                    <div style="font-size:12px;color:#555">Similarity: ${s.similarity ?? '—'}</div>
+                    <div style="font-size:12px;color:#555">Camera: ${escape(s.camera_id || '')}</div>
+                    <div style="font-size:11px;color:#999;margin-top:3px">${ts}</div>
+                </div>
+            `);
+            marker.addTo(markerLayer);
+            bounds.push([s.lat, s.lng]);
+        });
+        if (bounds.length) map.fitBounds(bounds, { maxZoom: 16, padding: [40, 40] });
+    }
+
+    function escape(s) {
+        return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    async function load() {
+        const resp = await fetch('/api/offender-sightings');
+        rawSightings = await resp.json();
+        populateFilter();
+        render();
+    }
+
+    filter.addEventListener('change', render);
+    refresh.addEventListener('click', load);
+    load();
+    // Lightweight polling — picks up new sightings emitted while the page is open
+    setInterval(load, 8000);
+})();
+</script>
+{% endblock %}
