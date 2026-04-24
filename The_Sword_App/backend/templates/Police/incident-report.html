@@ -1,12 +1,12 @@
 {% extends "police_base.html" %}
 
-{% block title %}
-Home - Citizen Safety App
-{% endblock %}
+{% block title %}Incident Report - Police{% endblock %}
 
 {% block content %}
-        <div class="container mx-auto px-4 mt-20">
-            <h2 class="text-2xl font-bold mb-4 dark:text-white">Incident Report</h2>
+<header class="mb-6">
+    <h1 class="page-title">Incident Report</h1>
+    <p class="page-subtitle">File a detailed incident report with evidence attachments.</p>
+</header>
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
                 <form id="incidentReportForm" action="#" method="POST" enctype="multipart/form-data">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -69,10 +69,6 @@ Home - Citizen Safety App
                     </div>
                 </form>
             </div>
-        </div>
-    </main>
-
-
 
     <!-- Success Modal submit ke baad dikhega -->
 <div id="successModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
@@ -143,12 +139,12 @@ Home - Citizen Safety App
                         // Reset the form
                         incidentReportForm.reset();
                     } else if (data.error) {
-                        alert('Error: ' + data.error);
+                        showToast('danger', 'Error: ' + data.error);
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('An error occurred while submitting the form.');
+                    showToast('danger', 'An error occurred while submitting the form.');
                 });
         });
 

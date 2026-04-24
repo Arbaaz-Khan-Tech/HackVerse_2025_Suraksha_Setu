@@ -1,58 +1,90 @@
 {% extends "police_base.html" %}
 
-{% block title %}
-Home - Citizen Safety App
-{% endblock %}
+{% block title %}Dashboard - Police{% endblock %}
 
 {% block content %}
+<header class="mb-6">
+    <h1 class="page-title">Dashboard Overview</h1>
+    <p class="page-subtitle">At-a-glance status across all operations.</p>
+</header>
 
-        <div class="container mx-auto px-4 mt-20">
-            <h2 class="text-2xl font-bold mb-4 dark:text-white">Dashboard Overview</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <!-- CCTV Feeds Summary -->
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
-                    <h3 class="text-lg font-semibold mb-2 dark:text-white">CCTV Feeds</h3>
-                    <p class="text-gray-600 dark:text-gray-300">12 active feeds, 2 anomalies detected</p>
-                    <a href="cctv-feeds.html" class="text-primary hover:underline mt-2 inline-block">View Details</a>
-                </div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <!-- CCTV Feeds -->
+    <a href="/police/cctv-feeds" class="card card-hover p-5 block no-underline">
+        <div class="flex items-start justify-between mb-3">
+            <div class="w-10 h-10 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary flex items-center justify-center">
+                <i class="fas fa-video"></i>
+            </div>
+            <span class="text-xs font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-0.5 rounded-full">Live</span>
+        </div>
+        <h3 class="text-sm font-medium text-slate-500 dark:text-slate-400">CCTV Feeds</h3>
+        <p class="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">12 <span class="text-sm font-normal text-slate-500 dark:text-slate-400">active</span></p>
+        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">2 anomalies detected</p>
+    </a>
 
-                <!-- Crime Heatmap Summary -->
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
-                    <h3 class="text-lg font-semibold mb-2 dark:text-white">Crime Heatmap</h3>
-                    <p class="text-gray-600 dark:text-gray-300">3 high-activity zones identified</p>
-                    <a href="crime-heatmap.html" class="text-primary hover:underline mt-2 inline-block">View Map</a>
-                </div>
-
-                <!-- SOS Notifications Summary -->
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
-                    <h3 class="text-lg font-semibold mb-2 dark:text-white">SOS Notifications</h3>
-                    <p class="text-gray-600 dark:text-gray-300">2 active SOS requests</p>
-                    <a href="sos-notifications.html" class="text-primary hover:underline mt-2 inline-block">View Requests</a>
-                </div>
-
-                <!-- Incident Alerts Summary -->
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
-                    <h3 class="text-lg font-semibold mb-2 dark:text-white">Incident Alerts</h3>
-                    <p class="text-gray-600 dark:text-gray-300">5 new incidents reported</p>
-                    <a href="incident-alerts.html" class="text-primary hover:underline mt-2 inline-block">View Alerts</a>
-                </div>
-
-                <!-- Offender Database Summary -->
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
-                    <h3 class="text-lg font-semibold mb-2 dark:text-white">Offender Database</h3>
-                    <p class="text-gray-600 dark:text-gray-300">1,234 records, last updated 2 hours ago</p>
-                    <a href="offender-database.html" class="text-primary hover:underline mt-2 inline-block">Search Database</a>
-                </div>
-
-                <!-- Report Verification Summary -->
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
-                    <h3 class="text-lg font-semibold mb-2 dark:text-white">Report Verification</h3>
-                    <p class="text-gray-600 dark:text-gray-300">8 reports pending verification</p>
-                    <a href="report-verification.html" class="text-primary hover:underline mt-2 inline-block">View Queue</a>
-                </div>
+    <!-- Crime Heatmap -->
+    <a href="/police/crime-heatmap" class="card card-hover p-5 block no-underline">
+        <div class="flex items-start justify-between mb-3">
+            <div class="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-900/30 text-amber-600 flex items-center justify-center">
+                <i class="fas fa-map-location-dot"></i>
             </div>
         </div>
-    </main>
+        <h3 class="text-sm font-medium text-slate-500 dark:text-slate-400">Crime Heatmap</h3>
+        <p class="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">3 <span class="text-sm font-normal text-slate-500 dark:text-slate-400">zones</span></p>
+        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">High-activity areas identified</p>
+    </a>
 
+    <!-- SOS Notifications -->
+    <a href="/police/sos-notifications" class="card card-hover p-5 block no-underline">
+        <div class="flex items-start justify-between mb-3">
+            <div class="w-10 h-10 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-600 flex items-center justify-center">
+                <i class="fas fa-circle-exclamation"></i>
+            </div>
+            <span class="text-xs font-medium text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                Urgent
+            </span>
+        </div>
+        <h3 class="text-sm font-medium text-slate-500 dark:text-slate-400">SOS Notifications</h3>
+        <p class="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">2 <span class="text-sm font-normal text-slate-500 dark:text-slate-400">active</span></p>
+        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Awaiting response</p>
+    </a>
 
+    <!-- Incident Alerts -->
+    <a href="/police/incident-alerts" class="card card-hover p-5 block no-underline">
+        <div class="flex items-start justify-between mb-3">
+            <div class="w-10 h-10 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary flex items-center justify-center">
+                <i class="fas fa-bell"></i>
+            </div>
+        </div>
+        <h3 class="text-sm font-medium text-slate-500 dark:text-slate-400">Incident Alerts</h3>
+        <p class="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">5 <span class="text-sm font-normal text-slate-500 dark:text-slate-400">new</span></p>
+        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Reported today</p>
+    </a>
+
+    <!-- Offender Database -->
+    <a href="/police/offender-database" class="card card-hover p-5 block no-underline">
+        <div class="flex items-start justify-between mb-3">
+            <div class="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center">
+                <i class="fas fa-user-shield"></i>
+            </div>
+        </div>
+        <h3 class="text-sm font-medium text-slate-500 dark:text-slate-400">Offender Database</h3>
+        <p class="mt-1 text-2xl font-semibold text-slate-900 dark:text-white font-mono tabular-nums">1,234</p>
+        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Updated 2 hours ago</p>
+    </a>
+
+    <!-- Report Verification -->
+    <a href="/police/incident-verify" class="card card-hover p-5 block no-underline">
+        <div class="flex items-start justify-between mb-3">
+            <div class="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-900/30 text-amber-600 flex items-center justify-center">
+                <i class="fas fa-circle-check"></i>
+            </div>
+            <span class="text-xs font-medium text-amber-700 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 rounded-full">Pending</span>
+        </div>
+        <h3 class="text-sm font-medium text-slate-500 dark:text-slate-400">Report Verification</h3>
+        <p class="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">8 <span class="text-sm font-normal text-slate-500 dark:text-slate-400">reports</span></p>
+        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Awaiting verification</p>
+    </a>
+</div>
 {% endblock %}

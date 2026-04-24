@@ -1,17 +1,17 @@
 {% extends "police_base.html" %}
 
-{% block title %}Offender Sightings Map{% endblock %}
+{% block title %}Offender Sightings Map - Police{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+{% endblock %}
 
 {% block content %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<div class="container mx-auto px-4 mt-20 mb-10">
-    <div class="flex items-center justify-between mb-4">
-        <h2 class="text-2xl font-bold dark:text-white">
-            <i class="fa-solid fa-location-crosshairs mr-2 text-red-500"></i>
-            Offender Sightings Map
-        </h2>
+<div class="flex items-center justify-between mb-4">
+    <h1 class="page-title">
+        <i class="fa-solid fa-location-crosshairs mr-2 text-red-500"></i>
+        Offender Sightings Map
+    </h1>
         <div class="flex items-center gap-3">
             <label class="text-sm text-gray-500 dark:text-gray-300">
                 Filter:
@@ -32,8 +32,10 @@
     <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
         Each pin is a face match captured silently by a CCTV camera. Click a pin for details.
     </p>
-</div>
+{% endblock %}
 
+{% block extra_scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function () {
     const map = L.map('sightings-map').setView([20.5937, 78.9629], 5); // India center as fallback
