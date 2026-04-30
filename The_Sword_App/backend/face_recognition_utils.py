@@ -74,6 +74,27 @@ def generate_embedding(image_path):
         return None, str(e)
 
 
+def average_embeddings(embeddings):
+    """Aggregate multiple embeddings of the same person into a single robust vector.
+
+    Each face embedding is L2-normalized first so the average lies on the unit
+    sphere, matching what cosine similarity expects. With n captures of slightly
+    different angle / expression / lighting this produces a centroid that
+    generalizes better than any single frame.
+    """
+    if not embeddings:
+        return None
+    arr = np.asarray(embeddings, dtype=np.float32)
+    norms = np.linalg.norm(arr, axis=1, keepdims=True)
+    norms[norms == 0] = 1.0
+    unit = arr / norms
+    centroid = unit.mean(axis=0)
+    n = np.linalg.norm(centroid)
+    if n > 0:
+        centroid = centroid / n
+    return [float(x) for x in centroid]
+
+
 def detect_face_crop(image_path):
     """Find the largest face in an image and return it as a BGR ndarray.
     Used for Aadhar card uploads where we want to embed only the face region."""

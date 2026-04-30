@@ -613,6 +613,11 @@ def police_offender_database():
     )
 
 
+@app.route('/police/register-offender')
+def police_register_offender():
+    return render_template("Police/register-offender.html")
+
+
 @app.route('/api/offenders', methods=['GET'])
 def api_offenders_list():
     docs = list(offenders_collection.find({}, {"embedding": 0}).sort("created_at", -1))
@@ -638,30 +643,81 @@ def api_offenders_create():
     saved_path = os.path.join(OFFENDER_UPLOAD_DIR, saved_name)
 
     file = request.files.get("photo")
-    data_url = request.form.get("webcam_data_url")
+    data_urls = [d for d in request.form.getlist("webcam_data_url") if d]
+
+    embedding = None
+    err = None
+
     if file and file.filename:
         file.save(saved_path)
-    elif data_url:
-        try:
-            _, b64 = data_url.split(",", 1)
-            with open(saved_path, "wb") as f:
-                f.write(base64.b64decode(b64))
-        except Exception as e:
-            return jsonify({"error": f"invalid webcam data: {e}"}), 400
+        if source == "aadhar_card":
+            crop, err = face_utils.detect_face_crop(saved_path)
+            if err:
+                os.remove(saved_path)
+                return jsonify({"error": f"aadhar card: {err}"}), 400
+            cv2.imwrite(saved_path, crop)
+        embedding, err = face_utils.generate_embedding(saved_path)
+        if embedding is None:
+            os.remove(saved_path)
+            return jsonify({"error": f"embedding failed: {err}"}), 400
+
+    elif data_urls:
+        # Multi-frame capture: embed each frame, average the unit vectors.
+        # Cap at 8 frames to bound the embedding cost on CPU-only boxes.
+        data_urls = data_urls[:8]
+        embeddings = []
+        per_frame_errors = []
+        temp_paths = []
+        display_path = None  # first frame that yielded a valid embedding
+
+        for idx, du in enumerate(data_urls):
+            try:
+                _, b64 = du.split(",", 1)
+                tp = os.path.join(
+                    OFFENDER_UPLOAD_DIR,
+                    f"_tmp_{timestamp}_{uuid.uuid4().hex[:6]}_{idx}.jpg",
+                )
+                with open(tp, "wb") as f:
+                    f.write(base64.b64decode(b64))
+                temp_paths.append(tp)
+            except Exception as e:
+                per_frame_errors.append(f"frame {idx}: invalid data url ({e})")
+                continue
+
+            emb, e = face_utils.generate_embedding(tp)
+            if emb is None:
+                per_frame_errors.append(f"frame {idx}: {e}")
+                continue
+            embeddings.append(emb)
+            if display_path is None:
+                display_path = tp
+
+        if not embeddings:
+            for tp in temp_paths:
+                if os.path.exists(tp):
+                    os.remove(tp)
+            return jsonify({
+                "error": "no usable face in any frame",
+                "frame_errors": per_frame_errors,
+            }), 400
+
+        # Promote the first good frame to the display path; delete the rest.
+        os.replace(display_path, saved_path)
+        for tp in temp_paths:
+            if tp != display_path and os.path.exists(tp):
+                os.remove(tp)
+
+        embedding = (face_utils.average_embeddings(embeddings)
+                     if len(embeddings) > 1 else embeddings[0])
+
+        print(f"[FACE] registered '{name}' from {len(embeddings)}/{len(data_urls)} "
+              f"webcam frames"
+              + (f" (skipped: {len(per_frame_errors)})" if per_frame_errors else ""))
+
     else:
         return jsonify({"error": "photo file or webcam_data_url required"}), 400
 
-    if source == "aadhar_card":
-        crop, err = face_utils.detect_face_crop(saved_path)
-        if err:
-            os.remove(saved_path)
-            return jsonify({"error": f"aadhar card: {err}"}), 400
-        cv2.imwrite(saved_path, crop)
-
-    embedding, err = face_utils.generate_embedding(saved_path)
-    if embedding is None:
-        os.remove(saved_path)
-        return jsonify({"error": f"embedding failed: {err}"}), 400
+    frames_used = len(embeddings) if (data_urls and not (file and file.filename)) else 1
 
     doc = {
         "name": name,
@@ -669,6 +725,7 @@ def api_offenders_create():
         "photo_path": f"/static/uploads/offenders/{saved_name}",
         "photo_source": source,
         "embedding": embedding,
+        "frames_used": frames_used,
         "lookout_active": True,
         "created_at": datetime.datetime.now(),
     }
@@ -681,6 +738,7 @@ def api_offenders_create():
         "aadhar_number": aadhar,
         "photo_path": doc["photo_path"],
         "photo_source": source,
+        "frames_used": frames_used,
     }), 201
 
 
@@ -768,8 +826,13 @@ def api_offender_sightings_create():
 
 @app.route('/api/offender-sightings', methods=['GET'])
 def api_offender_sightings_list():
-    """Return recent sightings for the map page (newest first, capped at 500)."""
-    cursor = sightings_collection.find({}).sort("timestamp", -1).limit(500)
+    """Return recent sightings (newest first). Accepts ?limit=N (default 500, max 500)."""
+    try:
+        limit = int(request.args.get("limit", 500))
+    except ValueError:
+        limit = 500
+    limit = max(1, min(limit, 500))
+    cursor = sightings_collection.find({}).sort("timestamp", -1).limit(limit)
     out = []
     for d in cursor:
         out.append({

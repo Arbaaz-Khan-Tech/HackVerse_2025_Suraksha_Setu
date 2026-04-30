@@ -1,0 +1,465 @@
+{% extends "police_base.html" %}
+
+{% block title %}Register Offender - Police{% endblock %}
+
+{% block content %}
+<header class="mb-6">
+    <h1 class="page-title">Register New Offender</h1>
+    <p class="page-subtitle">
+        Add a person to the local database. A face embedding is generated and used for live CCTV matching.
+        See registered records in the
+        <a href="/police/offender-database" class="text-primary hover:underline">Offender Database</a>.
+    </p>
+</header>
+
+<section class="card p-6 mb-8 max-w-4xl">
+    <form id="offender-form" class="space-y-7">
+        <!-- STEP 1: identity -->
+        <fieldset>
+            <legend class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 flex items-center">
+                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-white text-[10px] font-bold mr-2">1</span>
+                Identity
+            </legend>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="offender-name" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                        Name <span class="text-red-500">*</span>
+                    </label>
+                    <input id="offender-name" type="text" name="name" required
+                           placeholder="Full legal name"
+                           class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-shadow">
+                </div>
+                <div>
+                    <label for="offender-aadhaar" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                        Aadhaar Number <span class="text-slate-400 font-normal">(optional)</span>
+                    </label>
+                    <input id="offender-aadhaar" type="text" name="aadhar_number"
+                           pattern="[0-9]{12}" maxlength="12" inputmode="numeric"
+                           placeholder="12 digits"
+                           class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-shadow">
+                </div>
+            </div>
+        </fieldset>
+
+        <!-- STEP 2: photo source -->
+        <fieldset>
+            <legend class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 flex items-center">
+                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-white text-[10px] font-bold mr-2">2</span>
+                Photo source
+            </legend>
+
+            <!-- Segmented tab switcher -->
+            <div role="tablist" class="inline-flex flex-wrap p-1 rounded-lg bg-slate-100 dark:bg-slate-800 mb-4 gap-1">
+                <label class="cursor-pointer">
+                    <input type="radio" name="photo_source" value="upload" class="source-radio peer sr-only" checked>
+                    <span class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors peer-checked:bg-white peer-checked:text-slate-900 peer-checked:shadow-sm dark:peer-checked:bg-slate-700 dark:peer-checked:text-white">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Upload
+                    </span>
+                </label>
+                <label class="cursor-pointer">
+                    <input type="radio" name="photo_source" value="aadhar_card" class="source-radio peer sr-only">
+                    <span class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors peer-checked:bg-white peer-checked:text-slate-900 peer-checked:shadow-sm dark:peer-checked:bg-slate-700 dark:peer-checked:text-white">
+                        <i class="fa-solid fa-id-card"></i> Aadhaar vault
+                    </span>
+                </label>
+                <label class="cursor-pointer">
+                    <input type="radio" name="photo_source" value="webcam" class="source-radio peer sr-only">
+                    <span class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors peer-checked:bg-white peer-checked:text-slate-900 peer-checked:shadow-sm dark:peer-checked:bg-slate-700 dark:peer-checked:text-white">
+                        <i class="fa-solid fa-camera"></i> Webcam
+                    </span>
+                </label>
+            </div>
+
+            <!-- UPLOAD: drag-and-drop -->
+            <div id="file-input-wrap">
+                <label for="photo-input" id="dropzone"
+                       class="flex flex-col items-center justify-center w-full px-6 py-8 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg cursor-pointer bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-400 mb-3"></i>
+                    <p class="text-sm text-slate-700 dark:text-slate-300 font-medium">
+                        <span class="text-primary">Click to upload</span> or drag and drop
+                    </p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">PNG or JPG, up to ~5 MB</p>
+                    <input id="photo-input" type="file" name="photo" accept="image/*" class="hidden">
+                    <div id="photo-preview-wrap" class="hidden mt-4 flex items-center gap-3">
+                        <img id="photo-preview" alt="" class="w-16 h-16 rounded-md object-cover border border-slate-200 dark:border-slate-600">
+                        <div class="text-left text-sm">
+                            <p id="photo-filename" class="text-slate-900 dark:text-white font-medium"></p>
+                            <p id="photo-size" class="text-xs text-slate-500"></p>
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- AADHAAR VAULT -->
+            <div id="aadhar-silent-wrap" class="hidden">
+                <div class="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-800 flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 flex items-center justify-center flex-shrink-0">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <div class="text-sm text-amber-900 dark:text-amber-100">
+                        <p class="font-medium">UIDAI Photo Vault retrieval</p>
+                        <p class="text-amber-800/80 dark:text-amber-200/80 mt-0.5">
+                            On submission, the photo linked to the Aadhaar number will be retrieved silently from the UIDAI vault. No upload required.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WEBCAM -->
+            <div id="webcam-wrap" class="hidden">
+                <div class="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <div class="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-4 mb-3">
+                        <div>
+                            <video id="webcam-video" autoplay playsinline
+                                   class="rounded-md border border-slate-300 dark:border-slate-600"
+                                   style="width:320px;height:240px;background:#000;object-fit:cover"></video>
+                            <canvas id="webcam-canvas" width="320" height="240" class="hidden"></canvas>
+                        </div>
+                        <div class="flex flex-col gap-2 md:max-w-xs">
+                            <button type="button" id="start-webcam" class="btn btn-primary w-full justify-center">
+                                <i class="fa-solid fa-play"></i> Start webcam
+                            </button>
+                            <button type="button" id="capture-webcam" class="btn btn-secondary w-full justify-center" disabled>
+                                <i class="fa-solid fa-camera"></i> <span>Capture photo</span>
+                            </button>
+                            <button type="button" id="auto-capture-webcam" class="btn btn-secondary w-full justify-center" disabled>
+                                <i class="fa-solid fa-bolt"></i> <span id="auto-capture-label">Auto-capture 5</span>
+                            </button>
+                            <button type="button" id="clear-captures" class="btn btn-ghost w-full justify-center hidden">
+                                <i class="fa-solid fa-trash"></i> Clear all
+                            </button>
+
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                                <i class="fa-solid fa-circle-info text-slate-400 mr-1"></i>
+                                Tip: capture 3–5 photos at slightly different angles
+                                (face forward, half-left, half-right) for best matching accuracy.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Captured-frames strip -->
+                    <div class="border-t border-slate-200 dark:border-slate-700 pt-3">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                Captured frames
+                                <span id="capture-count" class="text-slate-500 dark:text-slate-400 font-mono ml-1">0 / 8</span>
+                            </span>
+                            <span id="capture-hint" class="text-xs text-amber-600 dark:text-amber-400 hidden">
+                                Capture at least 3 for best results
+                            </span>
+                        </div>
+                        <div id="capture-strip" class="flex flex-wrap gap-2 min-h-[5rem]">
+                            <div id="capture-empty" class="empty-state w-full !py-6">
+                                <div class="empty-state-icon !w-10 !h-10 !mb-2 !rounded-lg"><i class="fa-solid fa-camera-retro"></i></div>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">No photos captured yet</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </fieldset>
+
+        <!-- Action bar -->
+        <div class="flex items-center justify-between gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <span id="form-status" class="text-sm text-slate-500 min-h-[1.25rem]"></span>
+            <div class="flex items-center gap-2">
+                <button type="reset" id="reset-btn" class="btn btn-ghost">Cancel</button>
+                <button type="submit" id="submit-btn" class="btn btn-primary">
+                    <i id="submit-btn-icon" class="fa-solid fa-circle-plus"></i>
+                    <span>Register offender</span>
+                </button>
+            </div>
+        </div>
+    </form>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    const form = document.getElementById('offender-form');
+    const fileWrap = document.getElementById('file-input-wrap');
+    const webcamWrap = document.getElementById('webcam-wrap');
+    const silentWrap = document.getElementById('aadhar-silent-wrap');
+    const statusEl = document.getElementById('form-status');
+    const submitBtn = document.getElementById('submit-btn');
+    const submitBtnIcon = document.getElementById('submit-btn-icon');
+
+    const video = document.getElementById('webcam-video');
+    const canvas = document.getElementById('webcam-canvas');
+    const startBtn = document.getElementById('start-webcam');
+    const captureBtn = document.getElementById('capture-webcam');
+    const autoCaptureBtn = document.getElementById('auto-capture-webcam');
+    const autoCaptureLabel = document.getElementById('auto-capture-label');
+    const clearCapturesBtn = document.getElementById('clear-captures');
+    const captureStrip = document.getElementById('capture-strip');
+    const captureEmpty = document.getElementById('capture-empty');
+    const captureCountEl = document.getElementById('capture-count');
+    const captureHint = document.getElementById('capture-hint');
+
+    const MAX_CAPTURES = 8;
+    const AUTO_CAPTURE_TARGET = 5;
+    const AUTO_CAPTURE_INTERVAL_MS = 900;
+
+    let webcamStream = null;
+    let capturedDataUrls = [];
+
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+    function setStatus(msg, ok) {
+        statusEl.textContent = msg || '';
+        statusEl.className = 'text-sm min-h-[1.25rem] ' +
+            (ok === true ? 'text-emerald-600' : ok === false ? 'text-red-600' : 'text-slate-500');
+    }
+    function setSubmitting(on) {
+        submitBtn.disabled = on;
+        submitBtnIcon.className = on ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-circle-plus';
+    }
+
+    // --- Source switcher ---
+    document.querySelectorAll('.source-radio').forEach(r => {
+        r.addEventListener('change', () => {
+            const v = document.querySelector('.source-radio:checked').value;
+            fileWrap.classList.toggle('hidden', v !== 'upload');
+            webcamWrap.classList.toggle('hidden', v !== 'webcam');
+            silentWrap.classList.toggle('hidden', v !== 'aadhar_card');
+        });
+    });
+
+    // --- File picker preview + drag-and-drop ---
+    const photoInput = document.getElementById('photo-input');
+    const dropzone = document.getElementById('dropzone');
+    const previewWrap = document.getElementById('photo-preview-wrap');
+    const previewImg = document.getElementById('photo-preview');
+    const previewName = document.getElementById('photo-filename');
+    const previewSize = document.getElementById('photo-size');
+
+    function fmtBytes(n) {
+        if (n < 1024) return n + ' B';
+        if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+        return (n / 1024 / 1024).toFixed(1) + ' MB';
+    }
+    function showFilePreview(file) {
+        if (!file || !file.type.startsWith('image/')) {
+            previewWrap.classList.add('hidden');
+            return;
+        }
+        const url = URL.createObjectURL(file);
+        previewImg.src = url;
+        previewImg.onload = () => URL.revokeObjectURL(url);
+        previewName.textContent = file.name;
+        previewSize.textContent = fmtBytes(file.size);
+        previewWrap.classList.remove('hidden');
+    }
+    photoInput.addEventListener('change', () => showFilePreview(photoInput.files[0]));
+
+    ['dragenter', 'dragover'].forEach(ev =>
+        dropzone.addEventListener(ev, (e) => {
+            e.preventDefault();
+            dropzone.classList.add('border-primary', 'bg-primary-50', 'dark:bg-primary-900/20');
+        })
+    );
+    ['dragleave', 'drop'].forEach(ev =>
+        dropzone.addEventListener(ev, (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('border-primary', 'bg-primary-50', 'dark:bg-primary-900/20');
+        })
+    );
+    dropzone.addEventListener('drop', (e) => {
+        const file = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (!file) return;
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        photoInput.files = dt.files;
+        showFilePreview(file);
+    });
+
+    // --- Aadhaar vault: silent webcam grab (mock UIDAI retrieval) ---
+    async function silentCaptureFrame() {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const track = stream.getVideoTracks()[0];
+        const settings = track.getSettings();
+        const w = settings.width || 640, h = settings.height || 480;
+        const v = document.createElement('video');
+        v.srcObject = stream;
+        v.playsInline = true;
+        v.muted = true;
+        await v.play();
+        await new Promise(r => setTimeout(r, 400));
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(v, 0, 0, w, h);
+        stream.getTracks().forEach(t => t.stop());
+        return c.toDataURL('image/jpeg', 0.9);
+    }
+
+    // --- Webcam multi-capture ---
+    function renderCaptureStrip() {
+        captureStrip.querySelectorAll('.cap-thumb').forEach(n => n.remove());
+
+        if (capturedDataUrls.length === 0) {
+            captureEmpty.classList.remove('hidden');
+            clearCapturesBtn.classList.add('hidden');
+        } else {
+            captureEmpty.classList.add('hidden');
+            clearCapturesBtn.classList.remove('hidden');
+            capturedDataUrls.forEach((url, idx) => {
+                const thumb = document.createElement('div');
+                thumb.className = 'cap-thumb relative group';
+                thumb.innerHTML = `
+                    <img src="${url}" alt="Capture ${idx + 1}"
+                         class="w-20 h-16 object-cover rounded-md border border-slate-300 dark:border-slate-600">
+                    <span class="absolute bottom-1 left-1 text-[10px] font-mono px-1 rounded bg-black/60 text-white leading-tight">${idx + 1}</span>
+                    <button type="button" data-idx="${idx}"
+                            class="cap-del absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                            title="Remove capture">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                `;
+                captureStrip.appendChild(thumb);
+            });
+            captureStrip.querySelectorAll('.cap-del').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    capturedDataUrls.splice(+btn.dataset.idx, 1);
+                    renderCaptureStrip();
+                });
+            });
+        }
+
+        captureCountEl.textContent = `${capturedDataUrls.length} / ${MAX_CAPTURES}`;
+        captureHint.classList.toggle('hidden',
+            capturedDataUrls.length === 0 || capturedDataUrls.length >= 3);
+
+        const live = !!webcamStream;
+        const atMax = capturedDataUrls.length >= MAX_CAPTURES;
+        captureBtn.disabled = !live || atMax;
+        autoCaptureBtn.disabled = !live || atMax;
+    }
+
+    function captureOne() {
+        if (!webcamStream || capturedDataUrls.length >= MAX_CAPTURES) return;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        capturedDataUrls.push(canvas.toDataURL('image/jpeg', 0.9));
+        renderCaptureStrip();
+    }
+
+    startBtn.addEventListener('click', async () => {
+        try {
+            webcamStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = webcamStream;
+            startBtn.disabled = true;
+            renderCaptureStrip();
+        } catch (e) {
+            setStatus('Webcam error: ' + e.message, false);
+        }
+    });
+
+    captureBtn.addEventListener('click', captureOne);
+
+    autoCaptureBtn.addEventListener('click', async () => {
+        if (!webcamStream) return;
+        const slotsLeft = MAX_CAPTURES - capturedDataUrls.length;
+        const target = Math.min(AUTO_CAPTURE_TARGET, slotsLeft);
+        if (target <= 0) return;
+
+        autoCaptureBtn.disabled = true;
+        captureBtn.disabled = true;
+        for (let i = 0; i < target; i++) {
+            autoCaptureLabel.textContent = `Capturing ${i + 1} / ${target}…`;
+            captureOne();
+            if (i < target - 1) await new Promise(r => setTimeout(r, AUTO_CAPTURE_INTERVAL_MS));
+        }
+        autoCaptureLabel.textContent = `Auto-capture ${AUTO_CAPTURE_TARGET}`;
+        renderCaptureStrip();
+    });
+
+    clearCapturesBtn.addEventListener('click', () => {
+        capturedDataUrls = [];
+        renderCaptureStrip();
+    });
+
+    // --- Submit ---
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        setStatus('Generating embedding… (can take a few seconds)');
+        setSubmitting(true);
+
+        const fd = new FormData(form);
+        const source = fd.get('photo_source');
+        if (source === 'upload') {
+            if (!photoInput.files || !photoInput.files[0]) {
+                setStatus('Please choose a photo first.', false);
+                setSubmitting(false);
+                return;
+            }
+        } else if (source === 'webcam') {
+            if (capturedDataUrls.length === 0) {
+                setStatus('Capture at least one photo first.', false);
+                setSubmitting(false);
+                return;
+            }
+            fd.delete('photo');
+            fd.delete('webcam_data_url');
+            capturedDataUrls.forEach(url => fd.append('webcam_data_url', url));
+        } else if (source === 'aadhar_card') {
+            try {
+                setStatus('Retrieving photo from UIDAI vault…');
+                const dataUrl = await silentCaptureFrame();
+                fd.set('webcam_data_url', dataUrl);
+                fd.delete('photo');
+            } catch (err) {
+                setStatus('UIDAI vault retrieval failed: ' + err.message, false);
+                showToast('danger', 'UIDAI vault retrieval failed.');
+                setSubmitting(false);
+                return;
+            }
+        }
+
+        try {
+            const resp = await fetch('/api/offenders', { method: 'POST', body: fd });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.error || 'unknown error');
+
+            setStatus('');
+            const framesNote = data.frames_used && data.frames_used > 1
+                ? ` <span class="text-slate-500">(${data.frames_used} frames)</span>` : '';
+            showToast('success',
+                `Registered <strong>${escapeHtml(data.name)}</strong>.${framesNote} ` +
+                `<a href="/police/offender-database" class="underline">View in database</a>`,
+                6000);
+
+            // Reset form + UI state for the next registration
+            form.reset();
+            document.querySelector('.source-radio[value="upload"]').checked = true;
+            fileWrap.classList.remove('hidden');
+            webcamWrap.classList.add('hidden');
+            silentWrap.classList.add('hidden');
+            previewWrap.classList.add('hidden');
+            if (webcamStream) {
+                webcamStream.getTracks().forEach(t => t.stop());
+                webcamStream = null;
+                video.srcObject = null;
+            }
+            startBtn.disabled = false;
+            capturedDataUrls = [];
+            renderCaptureStrip();
+        } catch (err) {
+            setStatus('Failed: ' + err.message, false);
+            showToast('danger', 'Could not register offender: ' + escapeHtml(err.message));
+        } finally {
+            setSubmitting(false);
+        }
+    });
+
+    // Cancel button (type=reset) — clear our previews + captures too
+    document.getElementById('reset-btn').addEventListener('click', () => {
+        previewWrap.classList.add('hidden');
+        capturedDataUrls = [];
+        renderCaptureStrip();
+        setStatus('');
+    });
+})();
+</script>
+{% endblock %}

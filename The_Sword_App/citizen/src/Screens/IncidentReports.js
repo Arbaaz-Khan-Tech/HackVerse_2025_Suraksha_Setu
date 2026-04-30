@@ -56,35 +56,72 @@ const IncidentReports = () => {
         hideDateTimePicker();
     };
 
+    const resolveLocation = async () => {
+        try {
+            const servicesEnabled = await Location.hasServicesEnabledAsync();
+            if (!servicesEnabled) {
+                const last = await Location.getLastKnownPositionAsync();
+                if (last) return last;
+                Alert.alert(
+                    'Location services off',
+                    'Please enable location services so the evidence can be geo-tagged. Capturing without location for now.'
+                );
+                return null;
+            }
+
+            return await Location.getCurrentPositionAsync({
+                accuracy: Location.Accuracy.Balanced
+            });
+        } catch (err) {
+            console.warn('Falling back to last known position:', err?.message);
+            const last = await Location.getLastKnownPositionAsync();
+            return last || null;
+        }
+    };
+
+    const ensureFileUri = async (uri) => {
+        if (!uri || uri.startsWith('file://')) return uri;
+        try {
+            const dest = `${FileSystem.cacheDirectory}evidence_${Date.now()}.jpg`;
+            await FileSystem.copyAsync({ from: uri, to: dest });
+            return dest;
+        } catch (err) {
+            console.warn('Could not copy to file:// uri, using original:', err?.message);
+            return uri;
+        }
+    };
+
     const handleCaptureImage = async () => {
-        if (!hasCameraPermission || !hasLocationPermission) {
-            Alert.alert('Permissions required', 'Camera and location permissions are needed');
+        if (!hasCameraPermission) {
+            Alert.alert('Permission required', 'Camera permission is needed to capture evidence');
             return;
         }
-    
+
         try {
-            const locationData = await Location.getCurrentPositionAsync({
-                accuracy: Location.Accuracy.High
-            });
-    
+            const locationData = hasLocationPermission ? await resolveLocation() : null;
+
             const result = await ImagePicker.launchCameraAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images, // Fixed this line
+                mediaTypes: ['images'],
                 allowsEditing: false,
-                quality: 0.8,
-                exif: true
+                quality: 0.8
             });
-    
-            if (!result.canceled) {
-                setCapturedImage(result.assets[0].uri);
-                setGeoData({
-                    latitude: locationData.coords.latitude,
-                    longitude: locationData.coords.longitude,
-                    timestamp: new Date().toISOString()
-                });
+
+            if (!result.canceled && result.assets?.length) {
+                const fileUri = await ensureFileUri(result.assets[0].uri);
+                setCapturedImage(fileUri);
+                if (locationData?.coords) {
+                    setGeoData({
+                        latitude: locationData.coords.latitude,
+                        longitude: locationData.coords.longitude,
+                        timestamp: new Date().toISOString()
+                    });
+                } else {
+                    setGeoData(null);
+                }
             }
         } catch (error) {
             console.error('Error capturing image:', error);
-            Alert.alert('Error', 'Failed to capture evidence');
+            Alert.alert('Error', error?.message || 'Failed to capture evidence');
         }
     };
 
@@ -107,10 +144,13 @@ const IncidentReports = () => {
         formData.append('notice', notice);
         formData.append('description', description);
 
-        // Prepare image file
+        // Prepare image file (RN FormData needs a file:// uri on Android)
+        const safeUri = capturedImage.startsWith('file://')
+            ? capturedImage
+            : await ensureFileUri(capturedImage);
         const filename = `evidence_${Date.now()}.jpg`;
         const file = {
-            uri: capturedImage,
+            uri: safeUri,
             name: filename,
             type: 'image/jpeg'
         };

@@ -374,10 +374,11 @@
 {% set p_analytics       = path == '/police/police-analytics' %}
 {% set p_sos             = path == '/police/sos-notifications' %}
 {% set p_offender_db     = path == '/police/offender-database' %}
+{% set p_register_off    = path == '/police/register-offender' %}
 {% set p_sightings       = path == '/police/sightings-map' %}
 {% set p_missing_db      = path == '/police/missing_person_database' %}
 {% set inc_open = p_incident_alerts or p_incident_report or p_broadcast or p_incident_verify %}
-{% set db_open  = p_offender_db or p_sightings or p_missing_db %}
+{% set db_open  = p_offender_db or p_register_off or p_sightings or p_missing_db %}
 
     <!-- Top Navigation -->
     <nav class="fixed top-0 inset-x-0 z-50 h-16 bg-white/90 dark:bg-slate-900/90 backdrop-blur border-b border-slate-200 dark:border-slate-800">
@@ -481,6 +482,10 @@
                 <i class="fas fa-chevron-down text-[10px] nav-chevron menu-chevron {% if db_open %}open{% endif %}"></i>
             </button>
             <div id="databaseMenu" class="nav-submenu {% if not db_open %}hidden{% endif %}">
+                <a href="/police/register-offender" class="nav-link {% if p_register_off %}nav-link-active{% endif %}">
+                    <i class="fas fa-user-plus w-4 text-center text-[11px]"></i>
+                    <span class="menu-text ml-3">Register Offender</span>
+                </a>
                 <a href="/police/offender-database" class="nav-link {% if p_offender_db %}nav-link-active{% endif %}">
                     <i class="fas fa-user-shield w-4 text-center text-[11px]"></i>
                     <span class="menu-text ml-3">Offender Database</span>
